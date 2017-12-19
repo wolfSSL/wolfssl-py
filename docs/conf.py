@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# wolfcrypt documentation build configuration file, created by
+# wolfssl documentation build configuration file, created by
 # sphinx-quickstart on Fri Apr 29 16:47:53 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -12,7 +12,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
 import sphinx_rtd_theme
 

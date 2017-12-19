@@ -22,22 +22,22 @@
 
 # pylint: disable=missing-docstring, invalid-name
 
-import os
+from distutils.util import get_platform
 from cffi import FFI
+from wolfssl.__about__ import __wolfssl_version__ as version
+from wolfssl._build_wolfssl import local_path
 
 ffi = FFI()
-
-_have_options = os.path.exists("/usr/local/include/wolfssl/options.h") \
-    or os.path.exists("/usr/include/wolfssl/options.h")
 
 ffi.set_source(
     "wolfssl._ffi",
     """
     #include <wolfssl/options.h>
     #include <wolfssl/ssl.h>
-    """ if _have_options else "#include <wolfssl/ssl.h>",
-    include_dirs=["/usr/local/include"],
-    library_dirs=["/usr/local/lib"],
+    """,
+    include_dirs=[local_path("lib/wolfssl/src")],
+    library_dirs=[local_path("lib/wolfssl/{}/{}/lib".format(
+        get_platform(), version))],
     libraries=["wolfssl"],
 )
 

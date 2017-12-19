@@ -41,7 +41,7 @@ def test_verify_mode(ssl_provider, ssl_context):
     assert ssl_context.verify_mode == ssl_provider.CERT_REQUIRED
 
 def test_set_ciphers(ssl_context):
-    ssl_context.set_ciphers("DHE-RSA-AES256-SHA256")
+    ssl_context.set_ciphers("DHE-RSA-AES256-SHA")
 
     with pytest.raises(Exception):
         ssl_context.set_ciphers("foo")

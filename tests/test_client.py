@@ -43,7 +43,10 @@ def secure_socket(request, ssl_provider, tcp_socket):
             tcp_socket, cert_reqs=ssl_provider.CERT_REQUIRED, ca_certs=CA_CERTS)
 
     elif request.param == "wrap_socket_from_context":
-        ctx = ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLSv1_2)
+        try:
+            ctx = ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLS)
+        except AttributeError:
+            ctx = ssl_provider.SSLContext(ssl_provider.PROTOCOL_SSLv23)
 
         ctx.verify_mode = ssl_provider.CERT_REQUIRED
         ctx.load_verify_locations(CA_CERTS)

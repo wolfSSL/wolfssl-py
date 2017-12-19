@@ -21,7 +21,7 @@ rm -rf dist && mv tmpdist dist
 # Install packages and test
 for PYBIN in /opt/python/*/bin/; do
     "${PYBIN}/pip" install -r requirements/test.txt
-    "${PYBIN}/pip" install wolfcrypt --no-index -f dist
+    "${PYBIN}/pip" install wolfssl --no-index -f dist
     rm -rf tests/__pycache__
     "${PYBIN}/py.test" tests
 done

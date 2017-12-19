@@ -20,30 +20,29 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 
-# pylint: disable=missing-docstring
+__title__ = "wolfssl"
+__summary__ = "Python module that encapsulates wolfSSL's C SSL/TLS library."
+__uri__ = "https://github.com/wolfssl/wolfssl-py"
 
-METADATA = dict(
-    __name__="wolfssl",
-    __version__="0.1.2",
-    __license__="GPLv2 or Commercial License",
-    __author__="wolfSSL Inc.",
-    __author_email__="info@wolfssl.com",
-    __url__="https://wolfssl.github.io/wolfssl-py",
-    __description__= \
-      u"A Python module that encapsulates wolfSSL's C SSL/TLS library.",
-    __keywords__="security, cryptography, ssl, embedded, embedded ssl",
-    __classifiers__=[
-        u"License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
-        u"License :: Other/Proprietary License",
-        u"Operating System :: OS Independent",
-        u"Programming Language :: Python :: 2.7",
-        u"Programming Language :: Python :: 3.5",
-        u"Topic :: Security",
-        u"Topic :: Security :: Cryptography",
-        u"Topic :: Software Development"
-    ]
-)
+# When bumping the C library version, reset the POST count to 0
 
-globals().update(METADATA)
+__wolfssl_version__ = "v3.12.2-stable"
 
-__all__ = list(METADATA.keys())
+# We're using implicit post releases [PEP 440] to bump package version
+# while maintaining the C library version intact for better reference.
+# https://www.python.org/dev/peps/pep-0440/#implicit-post-releases
+#
+# MAJOR.MINOR.BUILD-POST
+
+__version__ = __wolfssl_version__[1:].replace("stable", "0")
+
+__author__ = "wolfSSL Inc."
+__email__ = "info@wolfssl.com"
+
+__license__ = "GPLv2 or Commercial License"
+__copyright__ = "Copyright (C) 2006-2017 wolfSSL Inc"
+
+__all__ = [
+    "__title__", "__summary__", "__uri__", "__version__", "__wolfssl_version__",
+    "__author__", "__email__", "__license__", "__copyright__"
+]

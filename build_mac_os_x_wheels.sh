@@ -8,9 +8,9 @@ for PYVERSION in 2.7 3.4 3.5 3.6; do
     python setup.py bdist_wheel
     pip install -r requirements/test.txt
     set +e
-    pip uninstall -y wolfcrypt
+    pip uninstall -y wolfssl
     set -e
-    pip install wolfcrypt --no-index -f dist
+    pip install wolfssl --no-index -f dist
     rm -rf tests/__pycache__
     py.test tests
     deactivate

@@ -26,6 +26,8 @@ from socket import (
     socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_TYPE, error as socket_error
 )
 
+from wolfssl.__about__ import * # pylint: disable=wildcard-import
+
 try:
     from wolfssl._ffi import ffi as _ffi
     from wolfssl._ffi import lib as _lib
@@ -44,12 +46,6 @@ from wolfssl._methods import (
     PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2, PROTOCOL_TLS,
     WolfSSLMethod as _WolfSSLMethod
 )
-
-from wolfssl.__about__ import (
-    __all__, METADATA
-)
-
-globals().update(METADATA)
 
 CERT_NONE = 0
 CERT_REQUIRED = 1

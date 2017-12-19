@@ -113,9 +113,9 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/wolfcrypt.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/wolfssl.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/wolfcrypt.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/wolfssl.qhc"
 
 .PHONY: applehelp
 applehelp:
@@ -132,8 +132,8 @@ devhelp:
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/wolfcrypt"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/wolfcrypt"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/wolfssl"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/wolfssl"
 	@echo "# devhelp"
 
 .PHONY: epub
