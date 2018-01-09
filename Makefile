@@ -48,7 +48,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 
 lint: ## check style with flake8
-	flake8 wolfssl tests
+	flake8 src tests
 
 test: ## run tests quickly with the default Python
 	py.test tests
@@ -66,10 +66,9 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-docs: ## generate Sphinx HTML documentation, including API docs
+docs: install ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/wolfssl.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ wolfssl
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
@@ -80,9 +79,9 @@ servedocs: docs ## compile the docs watching for changes
 dist: clean ## builds source and wheel package
 	python setup.py sdist
 	
-	./build_mac_os_x_wheels.sh
+	./make/osx/build_wheels.sh
 
-	./build_linux_wheels.sh
+	./make/manylinux1/build_wheels.sh
 
 	ls -l dist
 
