@@ -23,11 +23,12 @@
 # pylint: disable=missing-docstring, unused-import, undefined-variable
 
 import sys
-from binascii import hexlify as b2h, unhexlify as h2b
+from binascii import hexlify as b2h, unhexlify as h2b  # noqa: F401
 
 _PY3 = sys.version_info[0] == 3
-_TEXT_TYPE = str if _PY3 else unicode
+_TEXT_TYPE = str if _PY3 else unicode  # noqa: F821
 _BINARY_TYPE = bytes if _PY3 else str
+
 
 def t2b(string):
     """

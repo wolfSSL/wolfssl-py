@@ -24,8 +24,9 @@
 
 import sys
 import ssl
-import wolfssl
 import pytest
+import wolfssl
+
 
 @pytest.fixture
 def tcp_socket():
@@ -35,11 +36,13 @@ def tcp_socket():
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         yield sock
 
+
 @pytest.fixture(
-    params=[ssl, wolfssl]  if sys.version_info.major == 3 else [wolfssl],
+    params=[ssl, wolfssl] if sys.version_info.major == 3 else [wolfssl],
     ids=["ssl", "wolfssl"] if sys.version_info.major == 3 else ["wolfssl"])
 def ssl_provider(request):
     return request.param
+
 
 @pytest.fixture
 def ssl_context(ssl_provider):

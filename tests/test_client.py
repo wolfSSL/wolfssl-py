@@ -29,6 +29,7 @@ HOST = "www.python.org"
 PORT = 443
 CA_CERTS = "certs/ca-digicert-ev.pem"
 
+
 @pytest.fixture(
     params=["wrap_socket", "wrap_socket_with_ca",
             "wrap_socket_from_context", "ssl_socket"])
@@ -39,8 +40,9 @@ def secure_socket(request, ssl_provider, tcp_socket):
         sock = ssl_provider.wrap_socket(tcp_socket)
 
     elif request.param == "wrap_socket_with_ca":
-        sock = ssl_provider.wrap_socket(
-            tcp_socket, cert_reqs=ssl_provider.CERT_REQUIRED, ca_certs=CA_CERTS)
+        sock = ssl_provider.wrap_socket(tcp_socket,
+                                        cert_reqs=ssl_provider.CERT_REQUIRED,
+                                        ca_certs=CA_CERTS)
 
     elif request.param == "wrap_socket_from_context":
         try:
@@ -54,12 +56,14 @@ def secure_socket(request, ssl_provider, tcp_socket):
         sock = ctx.wrap_socket(tcp_socket)
 
     elif request.param == "ssl_socket":
-        sock = ssl_provider.SSLSocket(
-            tcp_socket, cert_reqs=ssl_provider.CERT_REQUIRED, ca_certs=CA_CERTS)
+        sock = ssl_provider.SSLSocket(tcp_socket,
+                                      cert_reqs=ssl_provider.CERT_REQUIRED,
+                                      ca_certs=CA_CERTS)
 
     if sock:
         yield sock
         sock.close()
+
 
 def test_secure_connection(secure_socket):
     secure_socket.connect((HOST, PORT))

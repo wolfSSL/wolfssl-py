@@ -27,11 +27,12 @@ from socket import error as socket_error
 
 class SSLError(socket_error):
     """
-    Raised to signal an error from the wolfSSL's SSL/TLS library. This signifies
-    some problem in the higher-level encryption and authentication layer that's
-    superimposed on the underlying network connection. This error is a subtype
-    of socket.error, which in turn is a subtype of IOError. The error code and
-    message of SSLError instances are provided by the wolfSSL library.
+    Raised to signal an error from the wolfSSL's SSL/TLS library. This
+    signifies some problem in the higher-level encryption and authentication
+    layer that's superimposed on the underlying network connection. This error
+    is a subtype of socket.error, which in turn is a subtype of IOError. The
+    error code and message of SSLError instances are provided by the wolfSSL
+    library.
     """
     pass
 
@@ -48,8 +49,8 @@ class SSLZeroReturnError(SSLError):
 class SSLWantReadError(SSLError):
     """
     A subclass of SSLError raised by a non-blocking SSL socket when trying to
-    read or write data, but more data needs to be received on the underlying TCP
-    transport before the request can be fulfilled.
+    read or write data, but more data needs to be received on the underlying
+    TCP transport before the request can be fulfilled.
     """
     pass
 
@@ -80,9 +81,10 @@ class SSLEOFError(SSLError):
     """
     pass
 
+
 class CertificateError(ValueError):
     """
-    Raised to signal an error with a certificate (such as mismatching hostname).
+    Raised to signal an error with a certificate (such as hostname mismatch).
     Certificate errors detected by wolfSSL, though, raise an SSLError.
     """
     pass

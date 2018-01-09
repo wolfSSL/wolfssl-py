@@ -26,7 +26,9 @@ from socket import (
     socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_TYPE, error as socket_error
 )
 
-from wolfssl.__about__ import * # pylint: disable=wildcard-import
+# pylint: disable=wildcard-import
+from wolfssl.__about__ import *  # noqa: F401, F403
+# pylint: enable=wildcard-import
 
 try:
     from wolfssl._ffi import ffi as _ffi
@@ -36,12 +38,12 @@ except ImportError:
 
 from wolfssl.utils import t2b
 
-from wolfssl.exceptions import (
+from wolfssl.exceptions import (  # noqa: F401
     CertificateError, SSLError, SSLEOFError, SSLSyscallError,
     SSLWantReadError, SSLWantWriteError, SSLZeroReturnError
 )
 
-from wolfssl._methods import (
+from wolfssl._methods import (  # noqa: F401
     PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLSv1,
     PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2, PROTOCOL_TLS,
     WolfSSLMethod as _WolfSSLMethod
@@ -57,6 +59,7 @@ _SSL_FILETYPE_PEM = 1
 _SSL_ERROR_WANT_READ = 2
 
 _PY3 = sys.version_info[0] == 3
+
 
 class SSLContext(object):
     """
@@ -83,11 +86,9 @@ class SSLContext(object):
         # verify_mode initialization needs a valid native_object.
         self.verify_mode = CERT_NONE
 
-
     def __del__(self):
         if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
             _lib.wolfSSL_CTX_free(self.native_object)
-
 
     @property
     def verify_mode(self):
@@ -97,7 +98,6 @@ class SSLContext(object):
         CERT_OPTIONAL or CERT_REQUIRED.
         """
         return self._verify_mode
-
 
     @verify_mode.setter
     def verify_mode(self, value):
@@ -110,7 +110,6 @@ class SSLContext(object):
             _lib.wolfSSL_CTX_set_verify(self.native_object,
                                         self._verify_mode,
                                         _ffi.NULL)
-
 
     def wrap_socket(self, sock, server_side=False,
                     do_handshake_on_connect=True,
@@ -129,19 +128,18 @@ class SSLContext(object):
                          suppress_ragged_eofs=suppress_ragged_eofs,
                          _context=self)
 
-
     def set_ciphers(self, ciphers):
         """
         Set the available ciphers for sockets created with this context. It
         should be a string in the wolfSSL cipher list format. If no cipher can
-        be selected (because compile-time options or other configuration forbids
-        use of all the specified ciphers), an SSLError will be raised.
+        be selected (because compile-time options or other configuration
+        forbids use of all the specified ciphers), an SSLError will be raised.
         """
-        ret = _lib.wolfSSL_CTX_set_cipher_list(self.native_object, t2b(ciphers))
+        ret = _lib.wolfSSL_CTX_set_cipher_list(self.native_object,
+                                               t2b(ciphers))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unnable to set cipher list")
-
 
     def load_cert_chain(self, certfile, keyfile=None, password=None):
         """
@@ -164,7 +162,8 @@ class SSLContext(object):
             ret = _lib.wolfSSL_CTX_use_certificate_chain_file(
                 self.native_object, t2b(certfile))
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load certificate chain. Err %d"% ret)
+                raise SSLError(
+                    "Unnable to load certificate chain. E(%d)" % ret)
         else:
             raise TypeError("certfile should be a valid filesystem path")
 
@@ -172,8 +171,7 @@ class SSLContext(object):
             ret = _lib.wolfSSL_CTX_use_PrivateKey_file(
                 self.native_object, t2b(keyfile), _SSL_FILETYPE_PEM)
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load private key. Err %d" % ret)
-
+                raise SSLError("Unnable to load private key. E(%d)" % ret)
 
     def load_verify_locations(self, cafile=None, capath=None, cadata=None):
         """
@@ -198,14 +196,15 @@ class SSLContext(object):
                 t2b(capath) if capath else _ffi.NULL)
 
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load verify locations. Err %d" % ret)
+                raise SSLError("Unnable to load verify locations. E(%d)" % ret)
 
         if cadata is not None:
             ret = _lib.wolfSSL_CTX_load_verify_buffer(
-                self.native_object, t2b(cadata), len(cadata), _SSL_FILETYPE_PEM)
+                self.native_object, t2b(cadata),
+                len(cadata), _SSL_FILETYPE_PEM)
 
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load verify locations. Err %d" % ret)
+                raise SSLError("Unnable to load verify locations. E(%d)" % ret)
 
 
 class SSLSocket(socket):
@@ -313,21 +312,18 @@ class SSLSocket(socket):
             try:
                 if do_handshake_on_connect:
                     self.do_handshake()
-            except:
+            except SSLError:
                 self._release_native_object()
                 self.close()
                 raise
 
-
     def __del__(self):
         self._release_native_object()
-
 
     def _release_native_object(self):
         if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
             _lib.wolfSSL_CTX_free(self.native_object)
             self.native_object = _ffi.NULL
-
 
     @property
     def context(self):
@@ -336,11 +332,9 @@ class SSLSocket(socket):
         """
         return self._context
 
-
     def dup(self):
         raise NotImplementedError("Can't dup() %s instances" %
                                   self.__class__.__name__)
-
 
     def _check_closed(self, call=None):
         if self.native_object == _ffi.NULL:
@@ -354,7 +348,6 @@ class SSLSocket(socket):
             # EAGAIN.
             self.getpeername()
 
-
     def write(self, data):
         """
         Write DATA to the underlying secure channel.
@@ -367,14 +360,12 @@ class SSLSocket(socket):
 
         return _lib.wolfSSL_write(self.native_object, data, len(data))
 
-
     def send(self, data, flags=0):
         if flags != 0:
             raise NotImplementedError("non-zero flags not allowed in calls to "
                                       "send() on %s" % self.__class__)
 
         return self.write(data)
-
 
     def sendall(self, data, flags=0):
         if flags != 0:
@@ -389,24 +380,20 @@ class SSLSocket(socket):
 
         return sent
 
-
     def sendto(self, data, flags_or_addr, addr=None):
-        # Ensure programs don't send unencrypted data trying to use this method
+        # Ensures not to send unencrypted data trying to use this method
         raise NotImplementedError("sendto not allowed on instances "
                                   "of %s" % self.__class__)
 
-
     def sendmsg(self, *args, **kwargs):
-        # Ensure programs don't send unencrypted data trying to use this method
+        # Ensures not to send unencrypted data trying to use this method
         raise NotImplementedError("sendmsg not allowed on instances "
                                   "of %s" % self.__class__)
 
-
     def sendfile(self, file, offset=0, count=None):
-        # Ensure programs don't send unencrypted files trying to use this method
+        # Ensures not to send unencrypted files trying to use this method
         raise NotImplementedError("sendfile not allowed on instances "
                                   "of %s" % self.__class__)
-
 
     def read(self, length=1024, buffer=None):
         """
@@ -432,7 +419,6 @@ class SSLSocket(socket):
 
         return _ffi.buffer(data, length)[:] if length > 0 else b''
 
-
     def recv(self, length=1024, flags=0):
         if flags != 0:
             raise NotImplementedError("non-zero flags not allowed in calls to "
@@ -440,40 +426,33 @@ class SSLSocket(socket):
 
         return self.read(self, length)
 
-
     def recv_into(self, buffer, nbytes=None, flags=0):
         raise NotImplementedError("recv_into not allowed on instances "
                                   "of %s" % self.__class__)
 
-
     def recvfrom(self, length=1024, flags=0):
-        # Ensure programs don't receive encrypted data trying to use this method
+        # Ensures not to receive encrypted data trying to use this method
         raise NotImplementedError("recvfrom not allowed on instances "
                                   "of %s" % self.__class__)
 
-
     def recvfrom_into(self, buffer, nbytes=None, flags=0):
-        # Ensure programs don't receive encrypted data trying to use this method
+        # Ensures not to receive encrypted data trying to use this method
         raise NotImplementedError("recvfrom_into not allowed on instances "
                                   "of %s" % self.__class__)
-
 
     def recvmsg(self, *args, **kwargs):
         raise NotImplementedError("recvmsg not allowed on instances of %s" %
                                   self.__class__)
 
-
     def recvmsg_into(self, *args, **kwargs):
         raise NotImplementedError("recvmsg_into not allowed on instances of "
                                   "%s" % self.__class__)
-
 
     def shutdown(self, how):
         if self.native_object != _ffi.NULL:
             _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
         socket.shutdown(self, how)
-
 
     def unwrap(self):
         """
@@ -492,7 +471,6 @@ class SSLSocket(socket):
 
         return sock
 
-
     def do_handshake(self, block=False):
         """
         Perform a TLS/SSL handshake.
@@ -503,7 +481,6 @@ class SSLSocket(socket):
         ret = _lib.wolfSSL_negotiate(self.native_object)
         if ret != _SSL_SUCCESS:
             raise SSLError("do_handshake failed with error %d" % ret)
-
 
     def _real_connect(self, addr, connect_ex):
         if self.server_side:
@@ -527,7 +504,6 @@ class SSLSocket(socket):
 
         return err
 
-
     def connect(self, addr):
         """
         Connects to remote ADDR, and then wraps the connection in a secure
@@ -535,14 +511,12 @@ class SSLSocket(socket):
         """
         self._real_connect(addr, False)
 
-
     def connect_ex(self, addr):
         """
         Connects to remote ADDR, and then wraps the connection in a secure
         channel.
         """
         return self._real_connect(addr, True)
-
 
     def accept(self):
         """
@@ -580,16 +554,17 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
     The parameter server_side is a boolean which identifies whether server-side
     or client-side behavior is desired from this socket.
 
-    The parameter cert_reqs specifies whether a certificate is required from the
-    other side of the connection, and whether it will be validated if provided.
+    The parameter cert_reqs specifies whether a certificate is required from
+    the other side of the connection, and whether it will be validated if
+    provided.
     It must be one of the three values:
 
         * CERT_NONE (certificates ignored)
         * CERT_OPTIONAL (not required, but validated if provided)
         * CERT_REQUIRED (required and validated)
 
-    If the value of this parameter is not CERT_NONE, then the ca_certs parameter
-    must point to a file of CA certificates.
+    If the value of this parameter is not CERT_NONE, then the ca_certs
+    parameter must point to a file of CA certificates.
 
     The ca_certs file contains a set of concatenated “certification authority”
     certificates, which are used to validate certificates passed from the other
@@ -619,8 +594,8 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
     +------------------+-------+-----+-------+---------+---------+
 
     Note:
-        Which connections succeed will vary depending on the versions of the ssl
-        providers on both sides of the communication.
+        Which connections succeed will vary depending on the versions of the
+        ssl providers on both sides of the communication.
 
     The ciphers parameter sets the available ciphers for this SSL object. It
     should be a string in the wolfSSL cipher list format.
@@ -628,9 +603,9 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
     The parameter do_handshake_on_connect specifies whether to do the SSL
     handshake automatically after doing a socket.connect(), or whether the
     application program will call it explicitly, by invoking the
-    SSLSocket.do_handshake() method. Calling SSLSocket.do_handshake() explicitly
-    gives the program control over the blocking behavior of the socket I/O
-    involved in the handshake.
+    SSLSocket.do_handshake() method. Calling SSLSocket.do_handshake()
+    explicitly gives the program control over the blocking behavior of the
+    socket I/O involved in the handshake.
 
     The parameter suppress_ragged_eofs is not supported yet.
     """

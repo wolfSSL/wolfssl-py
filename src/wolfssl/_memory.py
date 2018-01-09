@@ -30,5 +30,6 @@ except ImportError:
 
 _DYNAMIC_TYPE_METHOD = 11
 
+
 def _native_free(native_object, dynamic_type):
     _lib.wolfSSL_Free(native_object, _ffi.NULL, dynamic_type)

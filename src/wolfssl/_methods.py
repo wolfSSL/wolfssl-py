@@ -76,7 +76,6 @@ class WolfSSLMethod(object):
         if self.native_object == _ffi.NULL:
             raise MemoryError("Unnable to allocate method object")
 
-
     def __del__(self):
         if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
             _native_free(self.native_object, _DYNAMIC_TYPE_METHOD)
