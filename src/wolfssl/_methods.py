@@ -23,14 +23,10 @@
 # pylint: disable=missing-docstring, invalid-name
 
 try:
-    from wolfssl._ffi import ffi as _ffi
     from wolfssl._ffi import lib as _lib
+    from wolfssl._ffi import ffi as _ffi
 except ImportError:
     pass
-
-from wolfssl._memory import (
-    _native_free, _DYNAMIC_TYPE_METHOD
-)
 
 
 PROTOCOL_SSLv23 = 1
@@ -43,8 +39,14 @@ PROTOCOL_TLSv1_2 = 5
 _PROTOCOL_LIST = [PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLS,
                   PROTOCOL_TLSv1, PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2]
 
+_DYNAMIC_TYPE_METHOD = 11
 
-class WolfSSLMethod(object):
+
+def _native_free(native_object, dynamic_type):
+    _lib.wolfSSL_Free(native_object, _ffi.NULL, dynamic_type)
+
+
+class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
     """
     An SSLMethod holds SSL-related configuration options such as
     protocol version and communication side.

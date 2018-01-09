@@ -69,5 +69,5 @@ def test_load_verify_locations_with_cafile(ssl_context):
     ssl_context.load_verify_locations(cafile="certs/ca-cert.pem")
 
 
-def test_load_verify_locations_with_cadata(ssl_provider, ssl_context):
+def test_load_verify_locations_with_cadata(ssl_context):
     ssl_context.load_verify_locations(cadata=_CADATA)

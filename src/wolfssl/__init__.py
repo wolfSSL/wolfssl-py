@@ -20,6 +20,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 
+# pylint: disable=too-many-instance-attributes, too-many-arguments
+# pylint: disable=too-many-arguments, too-many-branches, too-many-locals
+# pylint: disable=too-many-public-methods, too-many-statements
+
 import sys
 import errno
 from socket import (
@@ -271,7 +275,8 @@ class SSLSocket(socket):
                                 proto=sock.proto,
                                 fileno=sock.fileno())
             else:
-                socket.__init__(self, _sock=sock._sock)
+                socket.__init__(
+                    self, _sock=sock._sock)  # pylint: disable=protected-access
 
             self.settimeout(sock.gettimeout())
 
@@ -471,7 +476,7 @@ class SSLSocket(socket):
 
         return sock
 
-    def do_handshake(self, block=False):
+    def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
         Perform a TLS/SSL handshake.
         """
