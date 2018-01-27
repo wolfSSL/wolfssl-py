@@ -115,6 +115,10 @@ def make_flags(prefix):
 
     # lib only
     flags.append("--disable-shared")
+    flags.append("--disable-examples")
+
+    # tls 1.3
+    flags.append("--enable-tls13")
 
     return " ".join(flags)
 

@@ -30,15 +30,15 @@ from wolfssl._ffi import ffi as _ffi
 
 
 @pytest.fixture(
-    params=[-1, PROTOCOL_SSLv3, PROTOCOL_TLSv1, PROTOCOL_TLSv1_1],
-    ids=["invalid", "SSLv3", "TLSv1", "TLSv1_1"])
+    params=[-1, PROTOCOL_SSLv3, PROTOCOL_TLSv1],
+    ids=["invalid", "SSLv3", "TLSv1"])
 def unsupported_method(request):
     yield request.param
 
 
 @pytest.fixture(
-    params=[PROTOCOL_SSLv23, PROTOCOL_TLS, PROTOCOL_TLSv1_2],
-    ids=["SSLv23", "TLS", "TLSv1_2"])
+    params=[PROTOCOL_SSLv23, PROTOCOL_TLS, PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2],
+    ids=["SSLv23", "TLS", "TLSv1_1", "TLSv1_2"])
 def supported_method(request):
     yield request.param
 

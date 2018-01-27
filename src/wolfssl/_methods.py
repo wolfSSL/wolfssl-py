@@ -63,7 +63,9 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
             raise ValueError("this protocol is not supported")
 
         elif protocol == PROTOCOL_TLSv1_1:
-            raise ValueError("this protocol is not supported")
+            self.native_object =                                     \
+                _lib.wolfTLSv1_1_server_method() if server_side else \
+                _lib.wolfTLSv1_1_client_method()
 
         elif protocol == PROTOCOL_TLSv1_2:
             self.native_object =                                     \

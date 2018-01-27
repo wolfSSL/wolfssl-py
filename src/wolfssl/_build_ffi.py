@@ -57,10 +57,14 @@ ffi.cdef(
     /**
      * SSL/TLS Method functions
      */
-    void* wolfSSLv23_server_method(void);
-    void* wolfSSLv23_client_method(void);
+    void* wolfTLSv1_1_server_method(void);
+    void* wolfTLSv1_1_client_method(void);
+
     void* wolfTLSv1_2_server_method(void);
     void* wolfTLSv1_2_client_method(void);
+
+    void* wolfSSLv23_server_method(void);
+    void* wolfSSLv23_client_method(void);
 
     /**
      * SSL/TLS Context functions
