@@ -38,8 +38,8 @@ def tcp_socket():
 
 
 @pytest.fixture(
-    params=[ssl, wolfssl] if sys.version_info.major == 3 else [wolfssl],
-    ids=["ssl", "wolfssl"] if sys.version_info.major == 3 else ["wolfssl"])
+    params=[ssl, wolfssl] if sys.version_info[:2] == (3, 6) else [wolfssl],
+    ids=["ssl", "wolfssl"] if sys.version_info[:2] == (3, 6) else ["wolfssl"])
 def ssl_provider(request):
     return request.param
 
