@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>wolfssl Python 3.13.0-0 documentation</title>
+  <title>wolfssl Python 3.14.0-1 documentation</title>
   
 
   
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                3.13.0-0
+                3.14.0-1
               </div>
             
           
@@ -149,7 +149,7 @@
     
       <li><a href="index.html#document-index">Docs</a> &raquo;</li>
         
-      <li>wolfssl Python 3.13.0-0 documentation</li>
+      <li>wolfssl Python 3.14.0-1 documentation</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -170,7 +170,7 @@
 <span id="document-installation"></span><div class="section" id="welcome">
 <h1>Welcome<a class="headerlink" href="#welcome" title="Permalink to this headline">¶</a></h1>
 <a class="reference external image-reference" href="https://travis-ci.org/wolfSSL/wolfssl-py"><img alt="https://travis-ci.org/wolfSSL/wolfssl-py.svg?branch=master" src="https://travis-ci.org/wolfSSL/wolfssl-py.svg?branch=master" /></a>
-<p><strong>wolfSSL Python</strong>, a.k.a. <code class="docutils literal"><span class="pre">wolfssl</span></code> is a Python module
+<p><strong>wolfSSL Python</strong>, a.k.a. <code class="docutils literal notranslate"><span class="pre">wolfssl</span></code> is a Python module
 that encapsulates <a class="reference external" href="https://wolfssl.com/wolfSSL/Products-wolfssl.html">wolfSSL’s SSL/TLS library</a>.</p>
 <p><strong>wolfSSL’s SSL/TLS library</strong> is a lightweight, portable, C-language-based
 library targeted at IoT, embedded, and RTOS environments primarily because of
@@ -180,7 +180,7 @@ and cloud environments as well.</p>
 <div class="section" id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <p>We provide Python wheels (prebuilt binaries) for OSX 64 bits and Linux 64 bits:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install wolfssl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install wolfssl
 </pre></div>
 </div>
 </div>
@@ -205,7 +205,7 @@ Check them out in the API documentation.</dd>
 </dl>
 <div class="section" id="using-the-top-level-function-wolfssl-wrap-socket">
 <h2>Using the top level function wolfssl.wrap_socket()<a class="headerlink" href="#using-the-top-level-function-wolfssl-wrap-socket" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">socket</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">socket</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">wolfssl</span>
 <span class="go">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -225,7 +225,7 @@ Check them out in the API documentation.</dd>
 </div>
 <div class="section" id="using-the-method-wrap-socket-from-a-sslcontext-instance">
 <h2>Using the method wrap_socket() from a SSLContext instance<a class="headerlink" href="#using-the-method-wrap-socket-from-a-sslcontext-instance" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">socket</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">socket</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">wolfssl</span>
 <span class="go">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -247,7 +247,7 @@ Check them out in the API documentation.</dd>
 </div>
 <div class="section" id="creating-an-sslsocket-object-from-the-scratch">
 <h2>Creating an SSLSocket object from the scratch<a class="headerlink" href="#creating-an-sslsocket-object-from-the-scratch" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">socket</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">socket</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">wolfssl</span>
 <span class="go">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -362,6 +362,9 @@ connect to which versions in a server (along the top):</p>
 <dt>Note:</dt>
 <dd>Which connections succeed will vary depending on the versions of the
 ssl providers on both sides of the communication.</dd>
+<dt>Note 2:</dt>
+<dd>For TLS 1.3 connections use PROTOCOL_TLS as there is no dedicated
+PROTOCOL constant for just TLS 1.3.</dd>
 </dl>
 <p>The ciphers parameter sets the available ciphers for this SSL object. It
 should be a string in the wolfSSL cipher list format.</p>
@@ -452,6 +455,13 @@ read and write methods over that channel.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="wolfssl.SSLSocket.dup">
+<code class="descname">dup</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; socket object<a class="headerlink" href="#wolfssl.SSLSocket.dup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Duplicate the socket. Return a new socket object connected to the same
+system resource. The new socket is non-inheritable.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="wolfssl.SSLSocket.write">
 <code class="descname">write</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.write" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write DATA to the underlying secure channel.
@@ -459,10 +469,168 @@ Returns number of bytes of DATA actually transmitted.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="wolfssl.SSLSocket.send">
+<code class="descname">send</code><span class="sig-paren">(</span><em>data</em><span class="optional">[</span>, <em>flags</em><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; count<a class="headerlink" href="#wolfssl.SSLSocket.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a data string to the socket.  For the optional flags
+argument, see the Unix manual.  Return the number of bytes
+sent; this may be less than len(data) if the network is busy.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.sendall">
+<code class="descname">sendall</code><span class="sig-paren">(</span><em>data</em><span class="optional">[</span>, <em>flags</em><span class="optional">]</span><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.sendall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a data string to the socket.  For the optional flags
+argument, see the Unix manual.  This calls send() repeatedly
+until all data is sent.  If an error occurs, it’s impossible
+to tell how much data has been sent.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.sendto">
+<code class="descname">sendto</code><span class="sig-paren">(</span><em>data</em>, <span class="optional">[</span><em>flags</em>, <span class="optional">]</span><em>address</em><span class="sig-paren">)</span> &#x2192; count<a class="headerlink" href="#wolfssl.SSLSocket.sendto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like send(data, flags) but allows specifying the destination address.
+For IP sockets, the address is a pair (hostaddr, port).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.sendmsg">
+<code class="descname">sendmsg</code><span class="sig-paren">(</span><em>buffers</em><span class="optional">[</span>, <em>ancdata</em><span class="optional">[</span>, <em>flags</em><span class="optional">[</span>, <em>address</em><span class="optional">]</span><span class="optional">]</span><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; count<a class="headerlink" href="#wolfssl.SSLSocket.sendmsg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send normal and ancillary data to the socket, gathering the
+non-ancillary data from a series of buffers and concatenating it into
+a single message.  The buffers argument specifies the non-ancillary
+data as an iterable of bytes-like objects (e.g. bytes objects).
+The ancdata argument specifies the ancillary data (control messages)
+as an iterable of zero or more tuples (cmsg_level, cmsg_type,
+cmsg_data), where cmsg_level and cmsg_type are integers specifying the
+protocol level and protocol-specific type respectively, and cmsg_data
+is a bytes-like object holding the associated data.  The flags
+argument defaults to 0 and has the same meaning as for send().  If
+address is supplied and not None, it sets a destination address for
+the message.  The return value is the number of bytes of non-ancillary
+data sent.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.sendfile">
+<code class="descname">sendfile</code><span class="sig-paren">(</span><em>file</em><span class="optional">[</span>, <em>offset</em><span class="optional">[</span>, <em>count</em><span class="optional">]</span><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; sent<a class="headerlink" href="#wolfssl.SSLSocket.sendfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a file until EOF is reached by using high-performance
+os.sendfile() and return the total number of bytes which
+were sent.
+<em>file</em> must be a regular file object opened in binary mode.
+If os.sendfile() is not available (e.g. Windows) or file is
+not a regular file socket.send() will be used instead.
+<em>offset</em> tells from where to start reading the file.
+If specified, <em>count</em> is the total number of bytes to transmit
+as opposed to sending the file until EOF is reached.
+File position is updated on return or also in case of error in
+which case file.tell() can be used to figure out the number of
+bytes which were sent.
+The socket must be of SOCK_STREAM type.
+Non-blocking sockets are not supported.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="wolfssl.SSLSocket.read">
 <code class="descname">read</code><span class="sig-paren">(</span><em>length=1024</em>, <em>buffer=None</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.read" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read up to LENGTH bytes and return them.
 Return zero-length string on EOF.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.recv">
+<code class="descname">recv</code><span class="sig-paren">(</span><em>buffersize</em><span class="optional">[</span>, <em>flags</em><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; data<a class="headerlink" href="#wolfssl.SSLSocket.recv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive up to buffersize bytes from the socket.  For the optional flags
+argument, see the Unix manual.  When no data is available, block until
+at least one byte is available or until the remote end is closed.  When
+the remote end is closed and all data is read, return the empty string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.recv_into">
+<code class="descname">recv_into</code><span class="sig-paren">(</span><em>buffer</em><span class="optional">[</span>, <em>nbytes</em><span class="optional">[</span>, <em>flags</em><span class="optional">]</span><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; nbytes_read<a class="headerlink" href="#wolfssl.SSLSocket.recv_into" title="Permalink to this definition">¶</a></dt>
+<dd><p>A version of recv() that stores its data into a buffer rather than creating 
+a new string.  Receive up to buffersize bytes from the socket.  If buffersize 
+is not specified (or 0), receive up to the size available in the given buffer.</p>
+<p>See recv() for documentation about the flags.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.recvfrom">
+<code class="descname">recvfrom</code><span class="sig-paren">(</span><em>buffersize[, flags]) -&gt; (data, address info</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.recvfrom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like recv(buffersize, flags) but also return the sender’s address info.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.recvfrom_into">
+<code class="descname">recvfrom_into</code><span class="sig-paren">(</span><em>buffer[, nbytes[, flags]]) -&gt; (nbytes, address info</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.recvfrom_into" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like recv_into(buffer[, nbytes[, flags]]) but also return the sender’s address info.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.recvmsg">
+<code class="descname">recvmsg</code><span class="sig-paren">(</span><em>bufsize[, ancbufsize[, flags]]) -&gt; (data, ancdata, msg_flags, address</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.recvmsg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive normal data (up to bufsize bytes) and ancillary data from the
+socket.  The ancbufsize argument sets the size in bytes of the
+internal buffer used to receive the ancillary data; it defaults to 0,
+meaning that no ancillary data will be received.  Appropriate buffer
+sizes for ancillary data can be calculated using CMSG_SPACE() or
+CMSG_LEN(), and items which do not fit into the buffer might be
+truncated or discarded.  The flags argument defaults to 0 and has the
+same meaning as for recv().</p>
+<p>The return value is a 4-tuple: (data, ancdata, msg_flags, address).
+The data item is a bytes object holding the non-ancillary data
+received.  The ancdata item is a list of zero or more tuples
+(cmsg_level, cmsg_type, cmsg_data) representing the ancillary data
+(control messages) received: cmsg_level and cmsg_type are integers
+specifying the protocol level and protocol-specific type respectively,
+and cmsg_data is a bytes object holding the associated data.  The
+msg_flags item is the bitwise OR of various flags indicating
+conditions on the received message; see your system documentation for
+details.  If the receiving socket is unconnected, address is the
+address of the sending socket, if available; otherwise, its value is
+unspecified.</p>
+<p>If recvmsg() raises an exception after the system call returns, it
+will first attempt to close any file descriptors received via the
+SCM_RIGHTS mechanism.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.recvmsg_into">
+<code class="descname">recvmsg_into</code><span class="sig-paren">(</span><em>buffers[, ancbufsize[, flags]]) -&gt; (nbytes, ancdata, msg_flags, address</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.recvmsg_into" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive normal data and ancillary data from the socket, scattering the
+non-ancillary data into a series of buffers.  The buffers argument
+must be an iterable of objects that export writable buffers
+(e.g. bytearray objects); these will be filled with successive chunks
+of the non-ancillary data until it has all been written or there are
+no more buffers.  The ancbufsize argument sets the size in bytes of
+the internal buffer used to receive the ancillary data; it defaults to
+0, meaning that no ancillary data will be received.  Appropriate
+buffer sizes for ancillary data can be calculated using CMSG_SPACE()
+or CMSG_LEN(), and items which do not fit into the buffer might be
+truncated or discarded.  The flags argument defaults to 0 and has the
+same meaning as for recv().</p>
+<p>The return value is a 4-tuple: (nbytes, ancdata, msg_flags, address).
+The nbytes item is the total number of bytes of non-ancillary data
+written into the buffers.  The ancdata item is a list of zero or more
+tuples (cmsg_level, cmsg_type, cmsg_data) representing the ancillary
+data (control messages) received: cmsg_level and cmsg_type are
+integers specifying the protocol level and protocol-specific type
+respectively, and cmsg_data is a bytes object holding the associated
+data.  The msg_flags item is the bitwise OR of various flags
+indicating conditions on the received message; see your system
+documentation for details.  If the receiving socket is unconnected,
+address is the address of the sending socket, if available; otherwise,
+its value is unspecified.</p>
+<p>If recvmsg_into() raises an exception after the system call returns,
+it will first attempt to close any file descriptors received via the
+SCM_RIGHTS mechanism.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="wolfssl.SSLSocket.shutdown">
+<code class="descname">shutdown</code><span class="sig-paren">(</span><em>flag</em><span class="sig-paren">)</span><a class="headerlink" href="#wolfssl.SSLSocket.shutdown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shut down the reading side of the socket (flag == SHUT_RD), the writing side
+of the socket (flag == SHUT_WR), or both ends (flag == SHUT_RDWR).</p>
 </dd></dl>
 
 <dl class="method">
@@ -508,7 +676,7 @@ channel, and the address of the remote client.</p>
 <h1>Client and Server Examples<a class="headerlink" href="#client-and-server-examples" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="ssl-tls-client-example">
 <h2>SSL/TLS Client Example<a class="headerlink" href="#ssl-tls-client-example" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">socket</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">import</span> <span class="nn">wolfssl</span>
 
 <span class="n">CA_DATA</span> <span class="o">=</span> \
@@ -559,7 +727,7 @@ channel, and the address of the remote client.</p>
 </div>
 <div class="section" id="ssl-tls-server-example">
 <h2>SSL/TLS Server Example<a class="headerlink" href="#ssl-tls-server-example" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">socket</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">import</span> <span class="nn">wolfssl</span>
 
 <span class="n">bind_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -654,7 +822,7 @@ licensing terms are also available at <a class="reference external" href="mailto
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.13.0-0',
+            VERSION:'3.14.0-1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
