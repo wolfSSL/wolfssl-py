@@ -602,6 +602,10 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
         Which connections succeed will vary depending on the versions of the
         ssl providers on both sides of the communication.
 
+    Note 2:
+        For TLS 1.3 connections use PROTOCOL_TLS as there is no dedicated
+        PROTOCOL constant for just TLS 1.3.
+
     The ciphers parameter sets the available ciphers for this SSL object. It
     should be a string in the wolfSSL cipher list format.
 

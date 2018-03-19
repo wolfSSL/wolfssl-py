@@ -49,8 +49,9 @@ clean-test: ## remove test and coverage artifacts
 
 lint: ## check style with flake8
 	flake8 src tests
+	pylint src tests/*
 
-test: ## run tests quickly with the default Python
+test: install ## run tests quickly with the default Python
 	py.test tests
 
 check: test ## run tests quickly with the default Python
@@ -60,8 +61,8 @@ test-all: ## run tests on every Python version with tox
 
 check-all: test-all ## run tests on every Python version with tox
 
-coverage: ## check code coverage quickly with the default Python
-	coverage run --source wolfssl -m pytest
+cov: install ## check code coverage quickly with the default Python
+	py.test --cov-config .coveragerc --cov=wolfssl tests
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
@@ -70,6 +71,10 @@ docs: install ## generate Sphinx HTML documentation, including API docs
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs singlehtml
 	$(BROWSER) docs/_build/singlehtml/index.html
+
+doctest: install ## generate Sphinx HTML documentation, including API docs
+	$(MAKE) -C docs clean
+	$(MAKE) -C docs doctest
 
 servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
