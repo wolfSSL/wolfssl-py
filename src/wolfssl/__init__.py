@@ -327,7 +327,7 @@ class SSLSocket(socket):
 
     def _release_native_object(self):
         if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
-            _lib.wolfSSL_CTX_free(self.native_object)
+            _lib.wolfSSL_free(self.native_object)
             self.native_object = _ffi.NULL
 
     @property
