@@ -249,7 +249,7 @@ class SSLContext(object):
                 raise SSLError("Unnable to load verify locations. E(%d)" % ret)
 
 
-class SSLSocket(socket):
+class SSLSocket(object):
     """
     This class implements a subtype of socket.socket that wraps the
     underlying OS socket in an SSL/TLS connection, providing secure
@@ -268,6 +268,9 @@ class SSLSocket(socket):
         self.do_handshake_on_connect = do_handshake_on_connect
         self.suppress_ragged_eofs = suppress_ragged_eofs
         self.server_side = server_side
+
+        # save socket
+        self._sock = sock
 
         # set context
         if _context:
@@ -307,30 +310,30 @@ class SSLSocket(socket):
                 raise NotImplementedError("only stream sockets are supported")
 
             if _PY3:
-                socket.__init__(self,
+                socket.__init__(self._sock,
                                 family=sock.family,
                                 type=sock.type,
                                 proto=sock.proto,
                                 fileno=sock.fileno())
             else:
                 socket.__init__(
-                    self, _sock=sock._sock)  # pylint: disable=protected-access
+                    self._sock, _sock=sock._sock)  # pylint: disable=protected-access
 
-            self.settimeout(sock.gettimeout())
+            self._sock.settimeout(sock.gettimeout())
 
             if _PY3:
                 sock.detach()
 
         elif fileno is not None:
-            socket.__init__(self, fileno=fileno)
+            socket.__init__(self._sock, fileno=fileno)
 
         else:
-            socket.__init__(self, family=family, type=sock_type,
+            socket.__init__(self._sock, family=family, type=sock_type,
                             proto=proto)
 
         # see if we are connected
         try:
-            self.getpeername()
+            self._sock.getpeername()
         except socket_error as exception:
             if exception.errno != errno.ENOTCONN:
                 raise
@@ -346,7 +349,7 @@ class SSLSocket(socket):
         if self.native_object == _ffi.NULL:
             raise MemoryError("Unnable to allocate ssl object")
 
-        ret = _lib.wolfSSL_set_fd(self.native_object, self.fileno())
+        ret = _lib.wolfSSL_set_fd(self.native_object, self._sock.fileno())
         if ret != _SSL_SUCCESS:
             self._release_native_object()
             raise ValueError("Unnable to set fd to ssl object")
@@ -357,7 +360,7 @@ class SSLSocket(socket):
                     self.do_handshake()
             except SSLError:
                 self._release_native_object()
-                self.close()
+                self._sock.close()
                 raise
 
     def __del__(self):
@@ -389,7 +392,7 @@ class SSLSocket(socket):
             # not connected; note that we can be connected even without
             # _connected being set, e.g. if connect() first returned
             # EAGAIN.
-            self.getpeername()
+            self._sock.getpeername()
 
     def write(self, data):
         """
@@ -467,7 +470,7 @@ class SSLSocket(socket):
             raise NotImplementedError("non-zero flags not allowed in calls to "
                                       "recv() on %s" % self.__class__)
 
-        return self.read(self, length)
+        return self.read(length=length)
 
     def recv_into(self, buffer, nbytes=None, flags=0):
         raise NotImplementedError("recv_into not allowed on instances "
@@ -495,7 +498,7 @@ class SSLSocket(socket):
         if self.native_object != _ffi.NULL:
             _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
-        socket.shutdown(self, how)
+        socket.shutdown(self._sock, how)
 
     def unwrap(self):
         """
@@ -505,14 +508,17 @@ class SSLSocket(socket):
         if self.native_object != _ffi.NULL:
             _lib.wolfSSL_set_fd(self.native_object, -1)
 
-        sock = socket(family=self.family,
-                      sock_type=self.type,
-                      proto=self.proto,
-                      fileno=self.fileno())
-        sock.settimeout(self.gettimeout())
-        self.detach()
+        sock = socket(family=self._sock.family,
+                      sock_type=self._sock.type,
+                      proto=self._sock.proto,
+                      fileno=self._sock.fileno())
+        sock.settimeout(self._sock.gettimeout())
+        self._sock.detach()
 
         return sock
+
+    def close(self):
+        self._sock.close()
 
     def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
@@ -539,10 +545,10 @@ class SSLSocket(socket):
             raise ValueError("attempt to connect already-connected SSLSocket!")
 
         if connect_ex:
-            err = socket.connect_ex(self, addr)
+            err = socket.connect_ex(self._sock, addr)
         else:
             err = 0
-            socket.connect(self, addr)
+            socket.connect(self._sock, addr)
 
         if err == 0:
             self._connected = True
@@ -574,7 +580,7 @@ class SSLSocket(socket):
         if not self.server_side:
             raise ValueError("can't accept in client-side mode")
 
-        newsock, addr = socket.accept(self)
+        newsock, addr = socket.accept(self._sock)
         newsock = self.context.wrap_socket(
             newsock,
             do_handshake_on_connect=self.do_handshake_on_connect,
