@@ -65,6 +65,44 @@ _SSL_ERROR_WANT_READ = 2
 _PY3 = sys.version_info[0] == 3
 
 
+class WolfSSLX509(object):
+    """
+    A WolfSSLX509 represents a X.509 certificate extracted from an SSL/TLS
+    session. This class wraps the native wolfSSL WOLFSSL_X509 structure.
+    """
+
+    def __init__(self, session):
+        self.native_object = _lib.wolfSSL_get_peer_certificate(session)
+
+        if self.native_object == _ffi.NULL:
+            raise SSLError("Unable to get internal WOLFSSL_X509 from wolfSSL")
+
+    def get_subject_cn(self):
+        cnPtr = _lib.wolfSSL_X509_get_subjectCN(self.native_object)
+        if cnPtr == _ffi.NULL:
+            return ''
+
+        cn = _ffi.string(cnPtr)
+
+        if _PY3:
+            if isinstance(cn, binary_type):
+                cn = cn.decode("utf-8")
+        else:
+            if isinstance(cn, text_type):
+                cn = cn.encode("utf-8")
+
+        return cn
+
+    def get_next_altname(self):
+        sanPtr = _lib.wolfSSL_X509_get_next_altname(self.native_object)
+        if (sanPtr == _ffi.NULL):
+            return None
+
+        san = _ffi.string(sanPtr)
+
+        return san
+
+
 class SSLContext(object):
     """
     An SSLContext holds various SSL-related configuration options and
@@ -544,6 +582,16 @@ class SSLSocket(socket):
             server_side=True)
 
         return newsock, addr
+
+    def get_peer_certificate(self):
+        """
+        Returns WolfSSLX509 object representing the peer's certificate,
+        after making a successful SSL/TLS connection.
+        """
+        if self.native_object == _ffi.NULL:
+            return _ffi.NULL
+
+        return WolfSSLX509(self.native_object)
 
 
 def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,

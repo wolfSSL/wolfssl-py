@@ -99,6 +99,13 @@ ffi.cdef(
     int wolfSSL_write(void*, const void*, int);
     int wolfSSL_read(void*, void*, int);
     int wolfSSL_shutdown(void*);
+    void* wolfSSL_get_peer_certificate(void*);
+
+    /**
+     * WOLFSSL_X509 functions
+     */
+    char* wolfSSL_X509_get_subjectCN(void*);
+    char* wolfSSL_X509_get_next_altname(void*);
     """
 )
 
