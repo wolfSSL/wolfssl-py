@@ -55,6 +55,12 @@ ffi.cdef(
     void  wolfSSL_Free(void*);
 
     /**
+     * Debugging
+     */
+    void wolfSSL_Debugging_ON();
+    void wolfSSL_Debugging_OFF();
+
+    /**
      * SSL/TLS Method functions
      */
     void* wolfTLSv1_1_server_method(void);
