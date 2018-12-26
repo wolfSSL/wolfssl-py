@@ -46,14 +46,6 @@ def _native_free(native_object, dynamic_type):
     _lib.wolfSSL_Free(native_object, _ffi.NULL, dynamic_type)
 
 
-def enable_debug():
-    _lib.wolfSSL_Debugging_ON()
-
-
-def disable_debug():
-    _lib.wolfSSL_Debugging_OFF()
-
-
 class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
     """
     An SSLMethod holds SSL-related configuration options such as

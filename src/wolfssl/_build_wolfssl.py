@@ -124,6 +124,9 @@ def make_flags(prefix):
     # keep peer cert
     cflags.append("-DKEEP_PEER_CERT")
 
+    # urllib3 requires SNI
+    flags.append("--enable-tlsx")
+
     joined_flags = " ".join(flags)
     joined_cflags = " ".join(cflags)
 

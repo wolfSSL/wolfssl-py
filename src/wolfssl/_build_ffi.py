@@ -84,6 +84,7 @@ ffi.cdef(
     int  wolfSSL_CTX_load_verify_locations(void*, const char*, const char*);
     int  wolfSSL_CTX_load_verify_buffer(void*, const unsigned char*, long,int);
     int  wolfSSL_CTX_use_certificate_chain_file(void*, const char *);
+    int  wolfSSL_CTX_UseSNI(void*, unsigned char, const void*, unsigned short);
 
     /**
      * SSL/TLS Session functions
@@ -100,6 +101,7 @@ ffi.cdef(
     int wolfSSL_read(void*, void*, int);
     int wolfSSL_shutdown(void*);
     void* wolfSSL_get_peer_certificate(void*);
+    int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);
 
     /**
      * WOLFSSL_X509 functions

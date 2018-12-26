@@ -61,8 +61,20 @@ _VERIFY_MODE_LIST = [CERT_NONE, CERT_REQUIRED]
 _SSL_SUCCESS = 1
 _SSL_FILETYPE_PEM = 1
 _SSL_ERROR_WANT_READ = 2
+_SSL_ERROR_WANT_WRITE = 3
 
 _PY3 = sys.version_info[0] == 3
+
+
+class WolfSSL(object):
+
+    @classmethod
+    def enable_debug(self):
+        _lib.wolfSSL_Debugging_ON()
+
+    @classmethod
+    def disable_debug(self):
+        _lib.wolfSSL_Debugging_OFF()
 
 
 class WolfSSLX509(object):
@@ -85,10 +97,10 @@ class WolfSSLX509(object):
         cn = _ffi.string(cnPtr)
 
         if _PY3:
-            if isinstance(cn, binary_type):
+            if isinstance(cn, bytes):
                 cn = cn.decode("utf-8")
         else:
-            if isinstance(cn, text_type):
+            if isinstance(cn, unicode):
                 cn = cn.encode("utf-8")
 
         return cn
@@ -181,7 +193,18 @@ class SSLContext(object):
                                                t2b(ciphers))
 
         if ret != _SSL_SUCCESS:
-            raise SSLError("Unnable to set cipher list")
+            raise SSLError("Unable to set cipher list")
+
+    def use_sni(self, server_hostname):
+        """
+        Sets the SNI hostname, wraps native wolfSSL_CTX_UseSNI()
+        """
+        ret = _lib.wolfSSL_CTX_UseSNI(self.native_object, 0,
+                                      server_hostname, len(server_hostname))
+
+        if ret != _SSL_SUCCESS:
+            raise SSLError("Unable to set wolfSSL CTX SNI")
+
 
     def load_cert_chain(self, certfile, keyfile=None, password=None):
         """
@@ -394,6 +417,16 @@ class SSLSocket(object):
             # EAGAIN.
             self._sock.getpeername()
 
+    def use_sni(self, server_hostname):
+        """
+        Sets the SNI hostname, wraps native wolfSSL_UseSNI()
+        """
+        ret = _lib.wolfSSL_UseSNI(self.native_object, 0,
+                                  server_hostname, len(server_hostname))
+
+        if ret != _SSL_SUCCESS:
+            raise SSLError("Unable to set wolfSSL SNI")
+
     def write(self, data):
         """
         Write DATA to the underlying secure channel.
@@ -533,7 +566,13 @@ class SSLSocket(object):
             ret = _lib.wolfSSL_connect(self.native_object)
 
         if ret != _SSL_SUCCESS:
-            raise SSLError("do_handshake failed with error %d" % ret)
+            err = _lib.wolfSSL_get_error(self.native_object, 0)
+            if err == _SSL_ERROR_WANT_READ:
+                raise SSLWantReadError()
+            elif err == _SSL_ERROR_WANT_WRITE:
+                raise SSLWantWriteError()
+            else:
+                raise SSLError("do_handshake failed with error %d" % err)
 
     def _real_connect(self, addr, connect_ex):
         if self.server_side:
