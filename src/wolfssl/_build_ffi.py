@@ -88,6 +88,8 @@ ffi.cdef(
     int wolfSSL_set_fd(void*, int);
     int wolfSSL_get_error(void*, int);
     int wolfSSL_negotiate(void*);
+    int wolfSSL_connect(void*);
+    int wolfSSL_accept(void*);
     int wolfSSL_write(void*, const void*, int);
     int wolfSSL_read(void*, void*, int);
     int wolfSSL_shutdown(void*);

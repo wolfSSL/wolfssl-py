@@ -483,7 +483,11 @@ class SSLSocket(socket):
         self._check_closed("do_handshake")
         self._check_connected()
 
-        ret = _lib.wolfSSL_negotiate(self.native_object)
+        if self.server_side:
+            ret = _lib.wolfSSL_accept(self.native_object)
+        else:
+            ret = _lib.wolfSSL_connect(self.native_object)
+
         if ret != _SSL_SUCCESS:
             raise SSLError("do_handshake failed with error %d" % ret)
 
