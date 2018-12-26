@@ -106,9 +106,10 @@ def make_flags(prefix):
     """ Returns compilation flags
     """
     flags = []
+    cflags = []
 
     if get_platform() in ["linux-x86_64", "linux-i686"]:
-        flags.append("CFLAGS=-fpic")
+        cflags.append("-fpic")
 
     # install location
     flags.append("--prefix={}".format(prefix))
@@ -120,7 +121,10 @@ def make_flags(prefix):
     # tls 1.3
     flags.append("--enable-tls13")
 
-    return " ".join(flags)
+    joined_flags = " ".join(flags)
+    joined_cflags = " ".join(cflags)
+
+    return joined_flags + " CFLAGS=\"" + joined_cflags + "\""
 
 
 def make(configure_flags):
