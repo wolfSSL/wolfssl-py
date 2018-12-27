@@ -108,6 +108,7 @@ ffi.cdef(
      */
     char* wolfSSL_X509_get_subjectCN(void*);
     char* wolfSSL_X509_get_next_altname(void*);
+    const unsigned char* wolfSSL_X509_get_der(void*, int*);
     """
 )
 

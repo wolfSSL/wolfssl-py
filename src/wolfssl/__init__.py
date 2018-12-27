@@ -114,6 +114,17 @@ class WolfSSLX509(object):
 
         return san
 
+    def get_der(self):
+        outSz = _ffi.new("int *")
+        derPtr = _lib.wolfSSL_X509_get_der(self.native_object, outSz)
+
+        if derPtr == _ffi.NULL:
+            return None
+
+        derBytes = _ffi.buffer(derPtr, outSz[0])
+
+        return derBytes
+
 
 class SSLContext(object):
     """
