@@ -121,11 +121,10 @@ def make_flags(prefix):
     # tls 1.3
     flags.append("--enable-tls13")
 
-    # keep peer cert
-    cflags.append("-DKEEP_PEER_CERT")
-
-    # urllib3 requires SNI
+    # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")
+    flags.append("--enable-opensslextra")
+    cflags.append("-DKEEP_PEER_CERT")
 
     joined_flags = " ".join(flags)
     joined_cflags = " ".join(cflags)

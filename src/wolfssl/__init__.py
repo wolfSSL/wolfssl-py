@@ -176,6 +176,18 @@ class SSLContext(object):
                                         self._verify_mode,
                                         _ffi.NULL)
 
+    def get_options(self):
+        """
+        Wrap native wolfSSL_CTX_get_options() function.
+        """
+        return _lib.wolfSSL_CTX_get_options(self.native_object)
+
+    def set_options(self, value):
+        """
+        Wrap native wolfSSL_CTX_set_options() function.
+        """
+        return _lib.wolfSSL_CTX_set_options(self.native_object, value)
+
     def wrap_socket(self, sock, server_side=False,
                     do_handshake_on_connect=True,
                     suppress_ragged_eofs=True):
