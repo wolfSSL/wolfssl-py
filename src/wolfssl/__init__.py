@@ -114,6 +114,18 @@ class WolfSSLX509(object):
 
         return san
 
+    def get_altnames(self):
+
+        altNames = []
+
+        while True:
+            name = self.get_next_altname()
+            if name is None:
+                break
+            altNames.append(('DNS', name))
+
+        return altNames
+
     def get_der(self):
         outSz = _ffi.new("int *")
         derPtr = _lib.wolfSSL_X509_get_der(self.native_object, outSz)
@@ -190,7 +202,8 @@ class SSLContext(object):
 
     def wrap_socket(self, sock, server_side=False,
                     do_handshake_on_connect=True,
-                    suppress_ragged_eofs=True):
+                    suppress_ragged_eofs=True,
+                    server_hostname=None):
         """
         Wrap an existing Python socket sock and return an SSLSocket object.
         sock must be a SOCK_STREAM socket; other socket types are unsupported.
@@ -203,7 +216,7 @@ class SSLContext(object):
         return SSLSocket(sock=sock, server_side=server_side,
                          do_handshake_on_connect=do_handshake_on_connect,
                          suppress_ragged_eofs=suppress_ragged_eofs,
-                         _context=self)
+                         _context=self, server_hostname=server_hostname)
 
     def set_ciphers(self, ciphers):
         """
@@ -308,7 +321,7 @@ class SSLSocket(object):
                  do_handshake_on_connect=True, family=AF_INET,
                  sock_type=SOCK_STREAM, proto=0, fileno=None,
                  suppress_ragged_eofs=True, ciphers=None,
-                 _context=None):
+                 _context=None, server_hostname=None):
 
         # set options
         self.do_handshake_on_connect = do_handshake_on_connect
@@ -347,6 +360,10 @@ class SSLSocket(object):
             self.ssl_version = ssl_version
             self.ca_certs = ca_certs
             self.ciphers = ciphers
+            self.server_hostname = server_hostname
+
+        if server_hostname is not None:
+            self._context.use_sni(server_hostname)
 
         # preparing socket
         if sock is not None:
@@ -651,7 +668,7 @@ class SSLSocket(object):
 
         return newsock, addr
 
-    def get_peer_certificate(self):
+    def get_peer_x509(self):
         """
         Returns WolfSSLX509 object representing the peer's certificate,
         after making a successful SSL/TLS connection.
@@ -660,6 +677,23 @@ class SSLSocket(object):
             return _ffi.NULL
 
         return WolfSSLX509(self.native_object)
+
+    def getpeercert(self, binary_form=False):
+        """
+        Compatibility wrapper to match Python ssl module's getpeercert()
+        function.
+        """
+
+        x509 = self.get_peer_x509()
+
+        if not x509:
+            return x509
+
+        if binary_form:
+            return x509.get_der()
+
+        return {'subject': ((('commonName', x509.get_subject_cn()),),),
+                'subjectAltName': x509.get_altnames() }
 
 
 def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
