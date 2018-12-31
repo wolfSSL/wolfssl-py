@@ -144,11 +144,11 @@ class SSLContext(object):
     data, such as certificates and possibly a private key.
     """
 
-    def __init__(self, protocol, server_side=False):
+    def __init__(self, protocol, server_side=None):
         method = _WolfSSLMethod(protocol, server_side)
 
         self.protocol = protocol
-        self._side = server_side
+        self._server_side = server_side
         self._verify_mode = None
         self.native_object = _lib.wolfSSL_CTX_new(method.native_object)
 
@@ -200,7 +200,7 @@ class SSLContext(object):
         """
         return _lib.wolfSSL_CTX_set_options(self.native_object, value)
 
-    def wrap_socket(self, sock, server_side=False,
+    def wrap_socket(self, sock, server_side=None,
                     do_handshake_on_connect=True,
                     suppress_ragged_eofs=True,
                     server_hostname=None):
@@ -213,6 +213,19 @@ class SSLContext(object):
         suppress_ragged_eofs have the same meaning as in the top-level
         wrap_socket() function.
         """
+
+        # if side was set at CTX init and here, they must match
+        if self._server_side is not None and server_side is not None:
+            if server_side != self._server_side:
+                raise ValueError("SSLContext server_side value not consistent "
+                                 "between init and wrap_socket()")
+
+        if self._server_side is None:
+            self._server_side = server_side
+
+        if server_side is None and self._server_side is not None:
+            server_side = self._server_side
+
         return SSLSocket(sock=sock, server_side=server_side,
                          do_handshake_on_connect=do_handshake_on_connect,
                          suppress_ragged_eofs=suppress_ragged_eofs,
