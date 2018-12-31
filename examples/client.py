@@ -105,6 +105,9 @@ def main():
 
     bind_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
 
+    # enable debug, if native wolfSSL has been compiled with '--enable-debug'
+    wolfssl.WolfSSL.enable_debug()
+
     context = wolfssl.SSLContext(get_method(args.v))
 
     context.load_cert_chain(args.c, args.k)

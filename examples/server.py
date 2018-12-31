@@ -109,6 +109,9 @@ def main():
 
     print("Server listening on port", bind_socket.getsockname()[1])
 
+    # enable debug, if native wolfSSL has been compiled with '--enable-debug'
+    wolfssl.WolfSSL.enable_debug()
+
     context = wolfssl.SSLContext(get_method(args.v), server_side=True)
 
     context.load_cert_chain(args.c, args.k)
