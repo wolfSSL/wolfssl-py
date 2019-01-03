@@ -103,6 +103,7 @@ ffi.cdef(
     int wolfSSL_shutdown(void*);
     void* wolfSSL_get_peer_certificate(void*);
     int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);
+    int wolfSSL_check_domain_name(void*, const char*);
 
     /**
      * WOLFSSL_X509 functions

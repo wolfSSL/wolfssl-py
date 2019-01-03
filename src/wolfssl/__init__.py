@@ -150,6 +150,7 @@ class SSLContext(object):
         self.protocol = protocol
         self._server_side = server_side
         self._verify_mode = None
+        self._check_hostname = False
         self.native_object = _lib.wolfSSL_CTX_new(method.native_object)
 
         # wolfSSL_CTX_new() takes ownership of the method.
@@ -187,6 +188,23 @@ class SSLContext(object):
             _lib.wolfSSL_CTX_set_verify(self.native_object,
                                         self._verify_mode,
                                         _ffi.NULL)
+
+    @property
+    def check_hostname(self):
+        """
+        Whether to match the peer certificate's hostname with match_hostname()
+        in SSLSocket.do_handshake(). Context's verify mode must be set to
+        CERT_REQUIRED, and the server hostname must be passed to wrap_socket()
+        in order to match the hostname.
+        """
+        return self._check_hostname
+
+    @check_hostname.setter
+    def check_hostname(self, value):
+        if value is not True and value is not False:
+            raise ValueError("check_hostname must be either True or False")
+
+        self._check_hostname = value
 
     def get_options(self):
         """
@@ -430,6 +448,12 @@ class SSLSocket(object):
         if ret != _SSL_SUCCESS:
             self._release_native_object()
             raise ValueError("Unnable to set fd to ssl object")
+
+        # match domain name / host name if set in context
+        if server_hostname is not None:
+            if self._context.check_hostname:
+                _lib.wolfSSL_check_domain_name(self.native_object,
+                                               server_hostname)
 
         if connected:
             try:
