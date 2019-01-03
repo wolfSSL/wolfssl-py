@@ -375,6 +375,7 @@ class SSLSocket(object):
             self.ciphers = ciphers
             self.server_hostname = server_hostname
 
+        # set SNI if passed in
         if server_hostname is not None:
             self._context.use_sni(server_hostname)
 
