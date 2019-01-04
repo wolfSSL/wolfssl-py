@@ -24,7 +24,6 @@
 
 from distutils.util import get_platform
 from cffi import FFI
-from wolfssl.__about__ import __wolfssl_version__ as version
 from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
 
 ffi = FFI()
@@ -95,6 +94,7 @@ ffi.cdef(
 
     int wolfSSL_set_fd(void*, int);
     int wolfSSL_get_error(void*, int);
+    char* wolfSSL_ERR_error_string(int, char*);
     int wolfSSL_negotiate(void*);
     int wolfSSL_connect(void*);
     int wolfSSL_accept(void*);

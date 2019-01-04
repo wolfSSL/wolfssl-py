@@ -650,7 +650,17 @@ class SSLSocket(object):
             elif err == _SSL_ERROR_WANT_WRITE:
                 raise SSLWantWriteError()
             else:
-                raise SSLError("do_handshake failed with error %d" % err)
+                eBuf = _ffi.new("char[80]")
+                eStr = _ffi.string(_lib.wolfSSL_ERR_error_string(err, eBuf))
+
+                if 'ASN no signer error to confirm' in eStr or err is -188:
+                    # Some Python ssl consumers explicitly check error message
+                    # for 'certificate verify failed'
+                    raise SSLError("do_handshake failed with error %d, "
+                                   "certificate verify failed" % err)
+
+                raise SSLError("do_handshake failed with error %d: %s" %
+                               (err, eStr))
 
     def _real_connect(self, addr, connect_ex):
         if self.server_side:
