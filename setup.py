@@ -46,16 +46,13 @@ with open("LICENSING.rst") as licensing_file:
 
 
 # requirements
-def _parse_requirements(filepath):
-    raw = pip.req.parse_requirements(
-        filepath, session=pip.download.PipSession())
-
-    return [str(i.req) for i in raw]
-
-
-install_requirements = _parse_requirements("requirements/prod.txt")
-setup_requirements = _parse_requirements("requirements/setup.txt")
-test_requirements = _parse_requirements("requirements/test.txt")
+install_requires = [
+    'cffi'
+]
+test_requires = [
+    'tox'
+    'pytest'
+]
 
 
 class cffiBuilder(build_ext, object):
@@ -102,9 +99,8 @@ setup(
         u"Topic :: Software Development"
     ],
 
-    setup_requires=setup_requirements,
-    install_requires=install_requirements,
+    install_requires=install_requires,
     test_suite="tests",
-    tests_require=test_requirements,
+    tests_require=test_requires,
     cmdclass={"build_ext" : cffiBuilder}
 )
