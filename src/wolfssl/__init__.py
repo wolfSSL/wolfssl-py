@@ -94,14 +94,7 @@ class WolfSSLX509(object):
         if cnPtr == _ffi.NULL:
             return ''
 
-        cn = _ffi.string(cnPtr)
-
-        if _PY3:
-            if isinstance(cn, bytes):
-                cn = cn.decode("utf-8")
-        else:
-            if isinstance(cn, unicode):
-                cn = cn.encode("utf-8")
+        cn = _ffi.string(cnPtr).decode("ascii")
 
         return cn
 
@@ -110,7 +103,7 @@ class WolfSSLX509(object):
         if (sanPtr == _ffi.NULL):
             return None
 
-        san = _ffi.string(sanPtr)
+        san = _ffi.string(sanPtr).decode("ascii")
 
         return san
 
@@ -284,6 +277,11 @@ class SSLContext(object):
         private key in.
 
         The password parameter is not supported yet.
+
+        wolfSSL does not support loading a certificate file that contains
+        both the certificate AND private key. In this case, users should
+        split them into two separate files and load using the certfile
+        and keyfile parameters, respectively.
         """
 
         if password is not None:
@@ -396,35 +394,6 @@ class SSLSocket(object):
         # set SNI if passed in
         if server_hostname is not None:
             self._context.use_sni(server_hostname)
-
-        # preparing socket
-        if sock is not None:
-            # Can't use sock.type as other flags (such as SOCK_NONBLOCK) get
-            # mixed in.
-            if sock.getsockopt(SOL_SOCKET, SO_TYPE) != SOCK_STREAM:
-                raise NotImplementedError("only stream sockets are supported")
-
-            if _PY3:
-                socket.__init__(self._sock,
-                                family=sock.family,
-                                type=sock.type,
-                                proto=sock.proto,
-                                fileno=sock.fileno())
-            else:
-                socket.__init__(
-                    self._sock, _sock=sock._sock)  # pylint: disable=protected-access
-
-            self._sock.settimeout(sock.gettimeout())
-
-            if _PY3:
-                sock.detach()
-
-        elif fileno is not None:
-            socket.__init__(self._sock, fileno=fileno)
-
-        else:
-            socket.__init__(self._sock, family=family, type=sock_type,
-                            proto=proto)
 
         # see if we are connected
         try:
@@ -584,8 +553,36 @@ class SSLSocket(object):
         return self.read(length=length)
 
     def recv_into(self, buffer, nbytes=None, flags=0):
-        raise NotImplementedError("recv_into not allowed on instances "
-                                  "of %s" % self.__class__)
+        """
+        Read nbytes bytes and place into buffer. If nbytes is 0, read up
+        to full size of buffer.
+        """
+        self._check_closed("read")
+        self._check_connected()
+
+        if buffer is None:
+            raise ValueError("buffer cannot be None")
+
+        if nbytes is None:
+            nbytes = len(buffer)
+        else:
+            nbytes = min(len(buffer), nbytes)
+
+        if nbytes == 0:
+            return 0
+
+        data = _ffi.from_buffer(buffer)
+        length = _lib.wolfSSL_read(self.native_object, data, nbytes)
+
+        if length < 0:
+            err = _lib.wolfSSL_get_error(self.native_object, 0)
+            if err == _SSL_ERROR_WANT_READ:
+                raise SSLWantReadError()
+            else:
+                raise SSLError("wolfSSL_read error (%d)" % err)
+
+        return length
+
 
     def recvfrom(self, length=1024, flags=0):
         # Ensures not to receive encrypted data trying to use this method
@@ -651,7 +648,8 @@ class SSLSocket(object):
                 raise SSLWantWriteError()
             else:
                 eBuf = _ffi.new("char[80]")
-                eStr = _ffi.string(_lib.wolfSSL_ERR_error_string(err, eBuf))
+                eStr = _ffi.string(_lib.wolfSSL_ERR_error_string(err,
+                                   eBuf)).decode("ascii")
 
                 if 'ASN no signer error to confirm' in eStr or err is -188:
                     # Some Python ssl consumers explicitly check error message
@@ -659,8 +657,25 @@ class SSLSocket(object):
                     raise SSLError("do_handshake failed with error %d, "
                                    "certificate verify failed" % err)
 
-                raise SSLError("do_handshake failed with error %d: %s" %
-                               (err, eStr))
+                # get alert code and string to put in exception msg
+                alertHistoryPtr = _ffi.new("WOLFSSL_ALERT_HISTORY*")
+                alertRet = _lib.wolfSSL_get_alert_history(self.native_object,
+                                                          alertHistoryPtr)
+                if alertRet == _SSL_SUCCESS:
+                    alertHistory = alertHistoryPtr[0]
+                    code = alertHistory.last_rx.code
+                    alertDesc = _lib.wolfSSL_alert_type_string_long(code)
+                    if alertDesc != _ffi.NULL:
+                        alertStr = _ffi.string(alertDesc).decode("ascii")
+                    else:
+                        alertStr = ''
+
+                    raise SSLError("do_handshake failed with error %d: %s. "
+                                   "alert (%d): %s" %
+                                   (err, eStr, code, alertStr))
+                else:
+                    raise SSLError("do_handshake failed with error %d: %s" %
+                                   (err, eStr))
 
     def _real_connect(self, addr, connect_ex):
         if self.server_side:

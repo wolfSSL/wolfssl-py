@@ -41,6 +41,20 @@ ffi.set_source(
 
 ffi.cdef(
     """
+
+    /**
+     * Structs
+     */
+    typedef struct WOLFSSL_ALERT {
+        int code;
+        int level;
+    } WOLFSSL_ALERT;
+
+    typedef struct WOLFSSL_ALERT_HISTORY {
+        WOLFSSL_ALERT last_rx;
+        WOLFSSL_ALERT last_tx;
+    } WOLFSSL_ALERT_HISTORY;
+
     /**
      * Types
      */
@@ -104,6 +118,9 @@ ffi.cdef(
     void* wolfSSL_get_peer_certificate(void*);
     int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);
     int wolfSSL_check_domain_name(void*, const char*);
+    int wolfSSL_get_alert_history(void*, WOLFSSL_ALERT_HISTORY*);
+    char* wolfSSL_alert_type_string_long(int);
+    char* wolfSSL_alert_desc_string_long(int);
 
     /**
      * WOLFSSL_X509 functions
