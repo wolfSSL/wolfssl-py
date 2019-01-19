@@ -150,10 +150,10 @@ def make_flags(prefix):
     flags.append("--enable-opensslextra")
     cflags.append("-DKEEP_PEER_CERT")
 
-    # websocket-client test server (echo.websocket.org) only supports
+    # Note: websocket-client test server (echo.websocket.org) only supports
     # TLS 1.2 with TLS_RSA_WITH_AES_128_CBC_SHA
-    # We must enable static RSA suites here
-    cflags.append("-DWOLFSSL_STATIC_RSA")
+    # If compiling for use with websocket-client, must enable static RSA suites.
+    # cflags.append("-DWOLFSSL_STATIC_RSA")
 
     joined_flags = " ".join(flags)
     joined_cflags = " ".join(cflags)
