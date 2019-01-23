@@ -11,7 +11,7 @@ for PYBIN in /opt/python/*/bin; do
 done
 
 # Bundle external shared libraries into the wheels
-for whl in dist/*.whl; do
+for whl in dist/wolfssl*.whl; do
     auditwheel repair "$whl" -w tmpdist/
 done
 
