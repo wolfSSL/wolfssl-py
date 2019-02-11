@@ -2,7 +2,7 @@
 #
 # test_methods.py
 #
-# Copyright (C) 2006-2017 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #

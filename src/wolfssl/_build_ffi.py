@@ -2,7 +2,7 @@
 #
 # build_ffi.py
 #
-# Copyright (C) 2006-2017 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -24,8 +24,7 @@
 
 from distutils.util import get_platform
 from cffi import FFI
-from wolfssl.__about__ import __wolfssl_version__ as version
-from wolfssl._build_wolfssl import local_path
+from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
 
 ffi = FFI()
 
@@ -35,14 +34,27 @@ ffi.set_source(
     #include <wolfssl/options.h>
     #include <wolfssl/ssl.h>
     """,
-    include_dirs=[local_path("lib/wolfssl/src")],
-    library_dirs=[local_path("lib/wolfssl/{}/{}/lib".format(
-        get_platform(), version))],
+    include_dirs=[wolfssl_inc_path()],
+    library_dirs=[wolfssl_lib_path()],
     libraries=["wolfssl"],
 )
 
 ffi.cdef(
     """
+
+    /**
+     * Structs
+     */
+    typedef struct WOLFSSL_ALERT {
+        int code;
+        int level;
+    } WOLFSSL_ALERT;
+
+    typedef struct WOLFSSL_ALERT_HISTORY {
+        WOLFSSL_ALERT last_rx;
+        WOLFSSL_ALERT last_tx;
+    } WOLFSSL_ALERT_HISTORY;
+
     /**
      * Types
      */
@@ -53,6 +65,12 @@ ffi.cdef(
      * Memory free function
      */
     void  wolfSSL_Free(void*);
+
+    /**
+     * Debugging
+     */
+    void wolfSSL_Debugging_ON();
+    void wolfSSL_Debugging_OFF();
 
     /**
      * SSL/TLS Method functions
@@ -78,6 +96,9 @@ ffi.cdef(
     int  wolfSSL_CTX_load_verify_locations(void*, const char*, const char*);
     int  wolfSSL_CTX_load_verify_buffer(void*, const unsigned char*, long,int);
     int  wolfSSL_CTX_use_certificate_chain_file(void*, const char *);
+    int  wolfSSL_CTX_UseSNI(void*, unsigned char, const void*, unsigned short);
+    long wolfSSL_CTX_get_options(void*);
+    long wolfSSL_CTX_set_options(void*, long);
 
     /**
      * SSL/TLS Session functions
@@ -87,10 +108,26 @@ ffi.cdef(
 
     int wolfSSL_set_fd(void*, int);
     int wolfSSL_get_error(void*, int);
+    char* wolfSSL_ERR_error_string(int, char*);
     int wolfSSL_negotiate(void*);
+    int wolfSSL_connect(void*);
+    int wolfSSL_accept(void*);
     int wolfSSL_write(void*, const void*, int);
     int wolfSSL_read(void*, void*, int);
     int wolfSSL_shutdown(void*);
+    void* wolfSSL_get_peer_certificate(void*);
+    int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);
+    int wolfSSL_check_domain_name(void*, const char*);
+    int wolfSSL_get_alert_history(void*, WOLFSSL_ALERT_HISTORY*);
+    char* wolfSSL_alert_type_string_long(int);
+    char* wolfSSL_alert_desc_string_long(int);
+
+    /**
+     * WOLFSSL_X509 functions
+     */
+    char* wolfSSL_X509_get_subjectCN(void*);
+    char* wolfSSL_X509_get_next_altname(void*);
+    const unsigned char* wolfSSL_X509_get_der(void*, int*);
     """
 )
 

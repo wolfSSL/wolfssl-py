@@ -4,7 +4,7 @@
 #
 # server.py
 #
-# Copyright (C) 2006-2017 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -108,6 +108,9 @@ def main():
     bind_socket.listen(5)
 
     print("Server listening on port", bind_socket.getsockname()[1])
+
+    # enable debug, if native wolfSSL has been compiled with '--enable-debug'
+    wolfssl.WolfSSL.enable_debug()
 
     context = wolfssl.SSLContext(get_method(args.v), server_side=True)
 

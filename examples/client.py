@@ -4,7 +4,7 @@
 #
 # client.py
 #
-# Copyright (C) 2006-2017 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -104,6 +104,9 @@ def main():
     args = build_arg_parser().parse_args()
 
     bind_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+
+    # enable debug, if native wolfSSL has been compiled with '--enable-debug'
+    wolfssl.WolfSSL.enable_debug()
 
     context = wolfssl.SSLContext(get_method(args.v))
 

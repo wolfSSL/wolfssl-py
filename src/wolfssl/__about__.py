@@ -2,7 +2,7 @@
 #
 # __about__.py
 #
-# Copyright (C) 2006-2017 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -26,7 +26,7 @@ __uri__ = "https://github.com/wolfssl/wolfssl-py"
 
 # When bumping the C library version, reset the POST count to 0
 
-__wolfssl_version__ = "v3.14.0b"
+__wolfssl_version__ = "v3.15.7-stable"
 
 # We're using implicit post releases [PEP 440] to bump package version
 # while maintaining the C library version intact for better reference.
@@ -34,13 +34,13 @@ __wolfssl_version__ = "v3.14.0b"
 #
 # MAJOR.MINOR.BUILD-POST
 
-__version__ = __wolfssl_version__[1:].replace("b", "-1")
+__version__ = __wolfssl_version__[1:].replace("stable", "0")
 
 __author__ = "wolfSSL Inc."
 __email__ = "info@wolfssl.com"
 
 __license__ = "GPLv2 or Commercial License"
-__copyright__ = "Copyright (C) 2006-2017 wolfSSL Inc"
+__copyright__ = "Copyright (C) 2006-2019 wolfSSL Inc"
 
 __all__ = [
     "__title__", "__summary__", "__uri__", "__version__",

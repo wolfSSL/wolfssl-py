@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2006-2017 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -23,6 +23,7 @@ import os
 import subprocess
 from contextlib import contextmanager
 from distutils.util import get_platform
+from wolfssl.__about__ import __wolfssl_version__ as version
 
 
 def local_path(path):
@@ -35,6 +36,29 @@ def local_path(path):
 
 WOLFSSL_GIT_ADDR = "https://github.com/wolfssl/wolfssl.git"
 WOLFSSL_SRC_PATH = local_path("lib/wolfssl/src")
+
+
+def wolfssl_inc_path():
+    wolfssl_path = os.environ.get("USE_LOCAL_WOLFSSL")
+    if wolfssl_path is None:
+        return local_path("lib/wolfssl/src")
+    else:
+        if os.path.isdir(wolfssl_path) and os.path.exists(wolfssl_path):
+            return wolfssl_path + "/include"
+        else:
+            return "/usr/local/include"
+
+
+def wolfssl_lib_path():
+    wolfssl_path = os.environ.get("USE_LOCAL_WOLFSSL")
+    if wolfssl_path is None:
+        return local_path("lib/wolfssl/{}/{}/lib".format(
+                          get_platform(), version))
+    else:
+        if os.path.isdir(wolfssl_path) and os.path.exists(wolfssl_path):
+            return wolfssl_path + "/lib"
+        else:
+            return "/usr/local/lib"
 
 
 def call(cmd):
@@ -106,9 +130,10 @@ def make_flags(prefix):
     """ Returns compilation flags
     """
     flags = []
+    cflags = []
 
     if get_platform() in ["linux-x86_64", "linux-i686"]:
-        flags.append("CFLAGS=-fpic")
+        cflags.append("-fpic")
 
     # install location
     flags.append("--prefix={}".format(prefix))
@@ -120,7 +145,20 @@ def make_flags(prefix):
     # tls 1.3
     flags.append("--enable-tls13")
 
-    return " ".join(flags)
+    # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
+    flags.append("--enable-tlsx")
+    flags.append("--enable-opensslextra")
+    cflags.append("-DKEEP_PEER_CERT")
+
+    # Note: websocket-client test server (echo.websocket.org) only supports
+    # TLS 1.2 with TLS_RSA_WITH_AES_128_CBC_SHA
+    # If compiling for use with websocket-client, must enable static RSA suites.
+    # cflags.append("-DWOLFSSL_STATIC_RSA")
+
+    joined_flags = " ".join(flags)
+    joined_cflags = " ".join(cflags)
+
+    return joined_flags + " CFLAGS=\"" + joined_cflags + "\""
 
 
 def make(configure_flags):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2006-2018 wolfSSL Inc.
+# Copyright (C) 2006-2019 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -44,29 +44,18 @@ with open("LICENSING.rst") as licensing_file:
     long_description = long_description.replace(".. include:: LICENSING.rst\n",
                                                 licensing_file.read())
 
-
-# requirements
-def _parse_requirements(filepath):
-    raw = pip.req.parse_requirements(
-        filepath, session=pip.download.PipSession())
-
-    return [str(i.req) for i in raw]
-
-
-install_requirements = _parse_requirements("requirements/prod.txt")
-setup_requirements = _parse_requirements("requirements/setup.txt")
-test_requirements = _parse_requirements("requirements/test.txt")
-
-
 class cffiBuilder(build_ext, object):
 
     def build_extension(self, ext):
         """ Compile manually the wolfssl-py extension, bypass setuptools
         """
-        build_wolfssl(wolfssl.__wolfssl_version__)
+
+        # if USE_LOCAL_WOLFSSL environment variable has been defined,
+        # do not clone and compile wolfSSL from GitHub
+        if os.environ.get("USE_LOCAL_WOLFSSL") is None:
+            build_wolfssl(wolfssl.__wolfssl_version__)
 
         super(cffiBuilder, self).build_extension(ext)
-
 
 setup(
     name=wolfssl.__title__,
@@ -82,7 +71,6 @@ setup(
     package_dir={"":package_dir},
 
     zip_safe=False,
-    cffi_modules=["./src/wolfssl/_build_ffi.py:ffi"],
 
     keywords="wolfssl, wolfcrypt, security, cryptography",
     classifiers=[
@@ -98,9 +86,10 @@ setup(
         u"Topic :: Software Development"
     ],
 
-    setup_requires=setup_requirements,
-    install_requires=install_requirements,
+    setup_requires=["cffi"],
+    cffi_modules=["./src/wolfssl/_build_ffi.py:ffi"],
+    install_requires=["cffi"],
     test_suite="tests",
-    tests_require=test_requirements,
+    tests_require=["tox", "pytest"],
     cmdclass={"build_ext" : cffiBuilder}
 )
