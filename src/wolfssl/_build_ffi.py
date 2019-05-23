@@ -26,6 +26,19 @@ from distutils.util import get_platform
 from cffi import FFI
 from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
 
+# open <wolfssl/options.h> header to parse for #define's
+# This will throw a FileNotFoundError if not able to find options.h
+optionsHeader = wolfssl_inc_path() + "/wolfssl/options.h"
+optionsHeaderStr = open(optionsHeader, 'r').read()
+
+# require HAVE_SNI (--enable-sni) in native lib
+if '#define HAVE_SNI' not in optionsHeaderStr:
+    raise SystemExit("wolfSSL needs to be compiled with --enable-sni")
+
+# require OPENSSL_EXTRA (--enable-opensslextra) in native lib
+if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
+    raise SystemExit("wolfSSL needs to be compiled with --enable-opensslextra")
+
 ffi = FFI()
 
 ffi.set_source(
@@ -119,8 +132,8 @@ ffi.cdef(
     int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);
     int wolfSSL_check_domain_name(void*, const char*);
     int wolfSSL_get_alert_history(void*, WOLFSSL_ALERT_HISTORY*);
-    char* wolfSSL_alert_type_string_long(int);
-    char* wolfSSL_alert_desc_string_long(int);
+    const char* wolfSSL_alert_type_string_long(int);
+    const char* wolfSSL_alert_desc_string_long(int);
 
     /**
      * WOLFSSL_X509 functions
@@ -132,4 +145,4 @@ ffi.cdef(
 )
 
 if __name__ == "__main__":
-    ffi.compile(verbose=1)
+    ffi.compile(verbose=True)

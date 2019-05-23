@@ -23,7 +23,6 @@
 
 import os
 import sys
-import pip
 from setuptools import setup
 from setuptools.command.build_ext import build_ext
 
@@ -71,6 +70,7 @@ setup(
     package_dir={"":package_dir},
 
     zip_safe=False,
+    cffi_modules=["./src/wolfssl/_build_ffi.py:ffi"],
 
     keywords="wolfssl, wolfcrypt, security, cryptography",
     classifiers=[
@@ -87,7 +87,6 @@ setup(
     ],
 
     setup_requires=["cffi"],
-    cffi_modules=["./src/wolfssl/_build_ffi.py:ffi"],
     install_requires=["cffi"],
     test_suite="tests",
     tests_require=["tox", "pytest"],

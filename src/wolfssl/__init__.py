@@ -249,8 +249,9 @@ class SSLContext(object):
         be selected (because compile-time options or other configuration
         forbids use of all the specified ciphers), an SSLError will be raised.
         """
+        cipherBytes = t2b(ciphers)
         ret = _lib.wolfSSL_CTX_set_cipher_list(self.native_object,
-                                               t2b(ciphers))
+                                               _ffi.new("char[]", cipherBytes))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set cipher list")
@@ -259,8 +260,11 @@ class SSLContext(object):
         """
         Sets the SNI hostname, wraps native wolfSSL_CTX_UseSNI()
         """
+
+        sni = t2b(server_hostname)
+
         ret = _lib.wolfSSL_CTX_UseSNI(self.native_object, 0,
-                                      server_hostname, len(server_hostname))
+                                      sni, len(sni))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL CTX SNI")
@@ -421,8 +425,10 @@ class SSLSocket(object):
         # match domain name / host name if set in context
         if server_hostname is not None:
             if self._context.check_hostname:
+
+                sni = _ffi.new("char[]", server_hostname.encode("utf-8"))
                 _lib.wolfSSL_check_domain_name(self.native_object,
-                                               server_hostname)
+                                               sni)
 
         if connected:
             try:
@@ -468,8 +474,11 @@ class SSLSocket(object):
         """
         Sets the SNI hostname, wraps native wolfSSL_UseSNI()
         """
+
+        sni = t2b(server_hostname)
+
         ret = _lib.wolfSSL_UseSNI(self.native_object, 0,
-                                  server_hostname, len(server_hostname))
+                                  sni, len(sni))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL SNI")
