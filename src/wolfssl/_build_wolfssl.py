@@ -41,7 +41,7 @@ WOLFSSL_SRC_PATH = local_path("lib/wolfssl/src")
 def wolfssl_inc_path():
     wolfssl_path = os.environ.get("USE_LOCAL_WOLFSSL")
     if wolfssl_path is None:
-        return local_path("lib/wolfssl")
+        return local_path("lib/wolfssl/src")
     else:
         if os.path.isdir(wolfssl_path) and os.path.exists(wolfssl_path):
             return wolfssl_path + "/include"

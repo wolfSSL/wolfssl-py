@@ -26,21 +26,6 @@ from distutils.util import get_platform
 from cffi import FFI
 from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
 
-# open <wolfssl/options.h> header to parse for #define's
-# This will throw a FileNotFoundError if not able to find options.h
-optionsHeaderPath = wolfssl_inc_path() + "/wolfssl/options.h"
-optionsHeader = open(optionsHeaderPath, 'r')
-optionsHeaderStr = optionsHeader.read()
-optionsHeader.close()
-
-# require HAVE_SNI (--enable-sni) in native lib
-if '#define HAVE_SNI' not in optionsHeaderStr:
-    raise SystemExit("wolfSSL needs to be compiled with --enable-sni")
-
-# require OPENSSL_EXTRA (--enable-opensslextra) in native lib
-if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
-    raise SystemExit("wolfSSL needs to be compiled with --enable-opensslextra")
-
 ffi = FFI()
 
 ffi.set_source(

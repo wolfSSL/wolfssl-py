@@ -33,6 +33,7 @@ sys.path.insert(0, package_dir)
 
 import wolfssl
 from wolfssl._build_wolfssl import build_wolfssl
+from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
 
 
 # long_description
@@ -42,6 +43,26 @@ with open("README.rst") as readme_file:
 with open("LICENSING.rst") as licensing_file:
     long_description = long_description.replace(".. include:: LICENSING.rst\n",
                                                 licensing_file.read())
+
+def verify_wolfssl_config():
+    # verify wolfSSL library has been configured correctly, so that cffi
+    # binding work correctly.
+
+    # open <wolfssl/options.h> header to parse for #define's
+    # This will throw a FileNotFoundError if not able to find options.h
+    optionsHeaderPath = wolfssl_inc_path() + "/wolfssl/options.h"
+    optionsHeader = open(optionsHeaderPath, 'r')
+    optionsHeaderStr = optionsHeader.read()
+    optionsHeader.close()
+
+    # require HAVE_SNI (--enable-sni) in native lib
+    if '#define HAVE_SNI' not in optionsHeaderStr:
+        raise RuntimeError("wolfSSL needs to be compiled with --enable-sni")
+
+    # require OPENSSL_EXTRA (--enable-opensslextra) in native lib
+    if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
+        raise RuntimeError("wolfSSL needs to be compiled with "
+            "--enable-opensslextra")
 
 class cffiBuilder(build_ext, object):
 
@@ -53,6 +74,8 @@ class cffiBuilder(build_ext, object):
         # do not clone and compile wolfSSL from GitHub
         if os.environ.get("USE_LOCAL_WOLFSSL") is None:
             build_wolfssl(wolfssl.__wolfssl_version__)
+
+        verify_wolfssl_config()
 
         super(cffiBuilder, self).build_extension(ext)
 
