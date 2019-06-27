@@ -114,6 +114,7 @@ ffi.cdef(
     int wolfSSL_accept(void*);
     int wolfSSL_write(void*, const void*, int);
     int wolfSSL_read(void*, void*, int);
+    int wolfSSL_pending(void*);
     int wolfSSL_shutdown(void*);
     void* wolfSSL_get_peer_certificate(void*);
     int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);

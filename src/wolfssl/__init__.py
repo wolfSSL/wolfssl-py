@@ -359,7 +359,7 @@ class SSLSocket(object):
         # set options
         self.do_handshake_on_connect = do_handshake_on_connect
         self.suppress_ragged_eofs = suppress_ragged_eofs
-        self.server_side = server_side
+        self._server_side = server_side
 
         # save socket
         self._sock = sock
@@ -447,12 +447,21 @@ class SSLSocket(object):
             _lib.wolfSSL_free(self.native_object)
             self.native_object = _ffi.NULL
 
+    def pending(self):
+        return _lib.wolfSSL_pending(self.native_object)
+
     @property
     def context(self):
         """
         Returns the context used by this object.
         """
         return self._context
+
+    def server_side(self):
+        """
+        Returns True for server-side socket, otherwise False.
+        """
+        return self._server_side;
 
     def dup(self):
         raise NotImplementedError("Can't dup() %s instances" %
@@ -615,7 +624,7 @@ class SSLSocket(object):
         if self.native_object != _ffi.NULL:
             _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
-        socket.shutdown(self._sock, how)
+        self._sock.shutdown(how)
 
     def unwrap(self):
         """
@@ -634,9 +643,6 @@ class SSLSocket(object):
 
         return sock
 
-    def close(self):
-        self._sock.close()
-
     def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
         Perform a TLS/SSL handshake.
@@ -644,7 +650,7 @@ class SSLSocket(object):
         self._check_closed("do_handshake")
         self._check_connected()
 
-        if self.server_side:
+        if self._server_side:
             ret = _lib.wolfSSL_accept(self.native_object)
         else:
             ret = _lib.wolfSSL_connect(self.native_object)
@@ -687,7 +693,7 @@ class SSLSocket(object):
                                    (err, eStr))
 
     def _real_connect(self, addr, connect_ex):
-        if self.server_side:
+        if self._server_side:
             raise ValueError("can't connect in server-side mode")
 
         # Here we assume that the socket is client-side, and not
@@ -696,10 +702,10 @@ class SSLSocket(object):
             raise ValueError("attempt to connect already-connected SSLSocket!")
 
         if connect_ex:
-            err = socket.connect_ex(self._sock, addr)
+            err = self._sock.connect_ex(addr)
         else:
             err = 0
-            socket.connect(self._sock, addr)
+            self._sock.connect(addr)
 
         if err == 0:
             self._connected = True
@@ -728,10 +734,10 @@ class SSLSocket(object):
         containing that new connection wrapped with a server-side secure
         channel, and the address of the remote client.
         """
-        if not self.server_side:
+        if not self._server_side:
             raise ValueError("can't accept in client-side mode")
 
-        newsock, addr = socket.accept(self._sock)
+        newsock, addr = self._sock.accept()
         newsock = self.context.wrap_socket(
             newsock,
             do_handshake_on_connect=self.do_handshake_on_connect,
@@ -766,6 +772,43 @@ class SSLSocket(object):
 
         return {'subject': ((('commonName', x509.get_subject_cn()),),),
                 'subjectAltName': x509.get_altnames() }
+
+    # The following functions expose functionality of the underlying
+    # Socket object. These are also expsed through Python's ssl module
+    # API and are provided here for compatibility.
+    def close(self):
+        self._sock.close()
+
+    def fileno(self):
+        """
+        Return file descriptor of underlying socket.
+        """
+        return self._sock.fileno()
+
+    def gettimeout(self):
+        """
+        Return the socket timeout of the underlying wrapped socket
+        """
+        return self._sock.gettimeout()
+
+    def settimeout(self, timeout):
+        """
+        Set the timeout on the underlying wrapped socket
+        """
+        self._sock.settimeout(timeout)
+
+    def getpeername(self):
+        """
+        Return the remote address that the underlying socket is connected to
+        """
+        return self._sock.getpeername()
+
+    def getsockname(self):
+        """
+        Return the underlying socket's address
+        """
+        return self._sock.getsockname()
+
 
 
 def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
