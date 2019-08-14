@@ -520,9 +520,17 @@ class SSLSocket(object):
         sent = 0
 
         while sent < length:
-            sent += self.write(data[sent:])
+            ret = self.write(data[sent:])
+            if (ret < 0):
+                err = _lib.wolfSSL_get_error(self.native_object, 0)
+                if err == _SSL_ERROR_WANT_WRITE:
+                    raise SSLWantWriteError()
+                else:
+                    raise SSLError("wolfSSL_write error (%d)" % err)
 
-        return sent
+            sent += ret
+
+        return None
 
     def sendto(self, data, flags_or_addr, addr=None):
         # Ensures not to send unencrypted data trying to use this method
@@ -638,6 +646,7 @@ class SSLSocket(object):
                       sock_type=self._sock.type,
                       proto=self._sock.proto,
                       fileno=self._sock.fileno())
+
         sock.settimeout(self._sock.gettimeout())
         self._sock.detach()
 
