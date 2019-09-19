@@ -22,7 +22,8 @@
 
 # pylint: disable=missing-docstring
 
-from socket import error as socket_error, EWOULDBLOCK
+from socket import error as socket_error
+from errno import EWOULDBLOCK
 
 
 class SSLError(socket_error):
