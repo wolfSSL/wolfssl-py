@@ -23,6 +23,7 @@
 # pylint: disable=missing-docstring
 
 from socket import error as socket_error
+from errno import EWOULDBLOCK
 
 
 class SSLError(socket_error):
@@ -52,6 +53,11 @@ class SSLWantReadError(SSLError):
     read or write data, but more data needs to be received on the underlying
     TCP transport before the request can be fulfilled.
     """
+    def __init__(self):
+        self.code = EWOULDBLOCK
+        self.msg = "Socket would read block"
+        self.args = (self.code, self.msg)
+
     pass
 
 
@@ -61,6 +67,11 @@ class SSLWantWriteError(SSLError):
     read or write data, but more data needs to be sent on the underlying TCP
     transport before the request can be fulfilled.
     """
+    def __init__(self):
+        self.code = EWOULDBLOCK
+        self.msg = "Socket would write block"
+        self.args = (self.code, self.msg)
+
     pass
 
 

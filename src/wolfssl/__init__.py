@@ -249,8 +249,9 @@ class SSLContext(object):
         be selected (because compile-time options or other configuration
         forbids use of all the specified ciphers), an SSLError will be raised.
         """
+        cipherBytes = t2b(ciphers)
         ret = _lib.wolfSSL_CTX_set_cipher_list(self.native_object,
-                                               t2b(ciphers))
+                                               _ffi.new("char[]", cipherBytes))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set cipher list")
@@ -259,8 +260,11 @@ class SSLContext(object):
         """
         Sets the SNI hostname, wraps native wolfSSL_CTX_UseSNI()
         """
+
+        sni = t2b(server_hostname)
+
         ret = _lib.wolfSSL_CTX_UseSNI(self.native_object, 0,
-                                      server_hostname, len(server_hostname))
+                                      sni, len(sni))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL CTX SNI")
@@ -355,7 +359,7 @@ class SSLSocket(object):
         # set options
         self.do_handshake_on_connect = do_handshake_on_connect
         self.suppress_ragged_eofs = suppress_ragged_eofs
-        self.server_side = server_side
+        self._server_side = server_side
 
         # save socket
         self._sock = sock
@@ -421,8 +425,10 @@ class SSLSocket(object):
         # match domain name / host name if set in context
         if server_hostname is not None:
             if self._context.check_hostname:
+
+                sni = _ffi.new("char[]", server_hostname.encode("utf-8"))
                 _lib.wolfSSL_check_domain_name(self.native_object,
-                                               server_hostname)
+                                               sni)
 
         if connected:
             try:
@@ -441,12 +447,21 @@ class SSLSocket(object):
             _lib.wolfSSL_free(self.native_object)
             self.native_object = _ffi.NULL
 
+    def pending(self):
+        return _lib.wolfSSL_pending(self.native_object)
+
     @property
     def context(self):
         """
         Returns the context used by this object.
         """
         return self._context
+
+    def server_side(self):
+        """
+        Returns True for server-side socket, otherwise False.
+        """
+        return self._server_side;
 
     def dup(self):
         raise NotImplementedError("Can't dup() %s instances" %
@@ -468,8 +483,11 @@ class SSLSocket(object):
         """
         Sets the SNI hostname, wraps native wolfSSL_UseSNI()
         """
+
+        sni = t2b(server_hostname)
+
         ret = _lib.wolfSSL_UseSNI(self.native_object, 0,
-                                  server_hostname, len(server_hostname))
+                                  sni, len(sni))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL SNI")
@@ -502,9 +520,17 @@ class SSLSocket(object):
         sent = 0
 
         while sent < length:
-            sent += self.write(data[sent:])
+            ret = self.write(data[sent:])
+            if (ret < 0):
+                err = _lib.wolfSSL_get_error(self.native_object, 0)
+                if err == _SSL_ERROR_WANT_WRITE:
+                    raise SSLWantWriteError()
+                else:
+                    raise SSLError("wolfSSL_write error (%d)" % err)
 
-        return sent
+            sent += ret
+
+        return None
 
     def sendto(self, data, flags_or_addr, addr=None):
         # Ensures not to send unencrypted data trying to use this method
@@ -606,7 +632,7 @@ class SSLSocket(object):
         if self.native_object != _ffi.NULL:
             _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
-        socket.shutdown(self._sock, how)
+        self._sock.shutdown(how)
 
     def unwrap(self):
         """
@@ -620,13 +646,11 @@ class SSLSocket(object):
                       sock_type=self._sock.type,
                       proto=self._sock.proto,
                       fileno=self._sock.fileno())
+
         sock.settimeout(self._sock.gettimeout())
         self._sock.detach()
 
         return sock
-
-    def close(self):
-        self._sock.close()
 
     def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
@@ -635,7 +659,7 @@ class SSLSocket(object):
         self._check_closed("do_handshake")
         self._check_connected()
 
-        if self.server_side:
+        if self._server_side:
             ret = _lib.wolfSSL_accept(self.native_object)
         else:
             ret = _lib.wolfSSL_connect(self.native_object)
@@ -678,7 +702,7 @@ class SSLSocket(object):
                                    (err, eStr))
 
     def _real_connect(self, addr, connect_ex):
-        if self.server_side:
+        if self._server_side:
             raise ValueError("can't connect in server-side mode")
 
         # Here we assume that the socket is client-side, and not
@@ -687,10 +711,10 @@ class SSLSocket(object):
             raise ValueError("attempt to connect already-connected SSLSocket!")
 
         if connect_ex:
-            err = socket.connect_ex(self._sock, addr)
+            err = self._sock.connect_ex(addr)
         else:
             err = 0
-            socket.connect(self._sock, addr)
+            self._sock.connect(addr)
 
         if err == 0:
             self._connected = True
@@ -719,10 +743,10 @@ class SSLSocket(object):
         containing that new connection wrapped with a server-side secure
         channel, and the address of the remote client.
         """
-        if not self.server_side:
+        if not self._server_side:
             raise ValueError("can't accept in client-side mode")
 
-        newsock, addr = socket.accept(self._sock)
+        newsock, addr = self._sock.accept()
         newsock = self.context.wrap_socket(
             newsock,
             do_handshake_on_connect=self.do_handshake_on_connect,
@@ -757,6 +781,43 @@ class SSLSocket(object):
 
         return {'subject': ((('commonName', x509.get_subject_cn()),),),
                 'subjectAltName': x509.get_altnames() }
+
+    # The following functions expose functionality of the underlying
+    # Socket object. These are also expsed through Python's ssl module
+    # API and are provided here for compatibility.
+    def close(self):
+        self._sock.close()
+
+    def fileno(self):
+        """
+        Return file descriptor of underlying socket.
+        """
+        return self._sock.fileno()
+
+    def gettimeout(self):
+        """
+        Return the socket timeout of the underlying wrapped socket
+        """
+        return self._sock.gettimeout()
+
+    def settimeout(self, timeout):
+        """
+        Set the timeout on the underlying wrapped socket
+        """
+        self._sock.settimeout(timeout)
+
+    def getpeername(self):
+        """
+        Return the remote address that the underlying socket is connected to
+        """
+        return self._sock.getpeername()
+
+    def getsockname(self):
+        """
+        Return the underlying socket's address
+        """
+        return self._sock.getsockname()
+
 
 
 def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,

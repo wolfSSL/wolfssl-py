@@ -114,13 +114,14 @@ ffi.cdef(
     int wolfSSL_accept(void*);
     int wolfSSL_write(void*, const void*, int);
     int wolfSSL_read(void*, void*, int);
+    int wolfSSL_pending(void*);
     int wolfSSL_shutdown(void*);
     void* wolfSSL_get_peer_certificate(void*);
     int wolfSSL_UseSNI(void*, unsigned char, const void*, unsigned short);
     int wolfSSL_check_domain_name(void*, const char*);
     int wolfSSL_get_alert_history(void*, WOLFSSL_ALERT_HISTORY*);
-    char* wolfSSL_alert_type_string_long(int);
-    char* wolfSSL_alert_desc_string_long(int);
+    const char* wolfSSL_alert_type_string_long(int);
+    const char* wolfSSL_alert_desc_string_long(int);
 
     /**
      * WOLFSSL_X509 functions
@@ -132,4 +133,4 @@ ffi.cdef(
 )
 
 if __name__ == "__main__":
-    ffi.compile(verbose=1)
+    ffi.compile(verbose=True)
