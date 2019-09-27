@@ -64,10 +64,7 @@ target/
 .python-version
 
 # pyenv dist build
-venv_2.7
-venv_3.4
-venv_3.5
-venv_3.6
+venv_*
 
 # code editor preferences
 .vscode
