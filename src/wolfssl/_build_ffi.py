@@ -61,6 +61,7 @@ ffi.cdef(
     typedef unsigned char byte;
     typedef unsigned int word32;
 
+    typedef int pem_password_cb(char* passwd, int sz, int rw, void* userdata);
     /**
      * Memory free function
      */
@@ -99,6 +100,7 @@ ffi.cdef(
     int  wolfSSL_CTX_UseSNI(void*, unsigned char, const void*, unsigned short);
     long wolfSSL_CTX_get_options(void*);
     long wolfSSL_CTX_set_options(void*, long);
+    void wolfSSL_CTX_set_default_passwd_cb(void*, pem_password_cb*);
 
     /**
      * SSL/TLS Session functions

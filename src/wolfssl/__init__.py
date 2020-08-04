@@ -25,6 +25,7 @@
 # pylint: disable=too-many-public-methods, too-many-statements
 
 import sys
+from functools import wraps
 import errno
 from socket import (
     socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_TYPE, error as socket_error
@@ -130,7 +131,6 @@ class WolfSSLX509(object):
 
         return derBytes
 
-
 class SSLContext(object):
     """
     An SSLContext holds various SSL-related configuration options and
@@ -144,6 +144,8 @@ class SSLContext(object):
         self._server_side = server_side
         self._verify_mode = None
         self._check_hostname = False
+        self._passwd_cb = None
+        self._passwd_userdata = None
         self.native_object = _lib.wolfSSL_CTX_new(method.native_object)
 
         # wolfSSL_CTX_new() takes ownership of the method.
@@ -269,7 +271,6 @@ class SSLContext(object):
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL CTX SNI")
 
-
     def load_cert_chain(self, certfile, keyfile=None, password=None):
         """
         Load a private key and the corresponding certificate. The certfile
@@ -280,24 +281,22 @@ class SSLContext(object):
         The keyfile string, if present, must point to a file containing the
         private key in.
 
-        The password parameter is not supported yet.
+        If you are using a key protected cert or key file, you must call
+        set_passwd_cb before calling load_cert_chain because wolfSSL
+        validates the provided file the first time it is loaded.
+
 
         wolfSSL does not support loading a certificate file that contains
         both the certificate AND private key. In this case, users should
         split them into two separate files and load using the certfile
         and keyfile parameters, respectively.
         """
-
-        if password is not None:
-            raise NotImplementedError("password callback support not "
-                                      "implemented yet")
-
         if certfile is not None:
             ret = _lib.wolfSSL_CTX_use_certificate_chain_file(
                 self.native_object, t2b(certfile))
             if ret != _SSL_SUCCESS:
                 raise SSLError(
-                    "Unnable to load certificate chain. E(%d)" % ret)
+                    "Unable to load certificate chain. E(%d)" % ret)
         else:
             raise TypeError("certfile should be a valid filesystem path")
 
@@ -305,7 +304,7 @@ class SSLContext(object):
             ret = _lib.wolfSSL_CTX_use_PrivateKey_file(
                 self.native_object, t2b(keyfile), _SSL_FILETYPE_PEM)
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load private key. E(%d)" % ret)
+                raise SSLError("Unable to load private key. E(%d)" % ret)
 
     def load_verify_locations(self, cafile=None, capath=None, cadata=None):
         """
@@ -330,7 +329,7 @@ class SSLContext(object):
                 t2b(capath) if capath else _ffi.NULL)
 
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load verify locations. E(%d)" % ret)
+                raise SSLError("Unable to load verify locations. E(%d)" % ret)
 
         if cadata is not None:
             ret = _lib.wolfSSL_CTX_load_verify_buffer(
@@ -338,8 +337,31 @@ class SSLContext(object):
                 len(cadata), _SSL_FILETYPE_PEM)
 
             if ret != _SSL_SUCCESS:
-                raise SSLError("Unnable to load verify locations. E(%d)" % ret)
+                raise SSLError("Unable to load verify locations. E(%d)" % ret)
 
+    def set_passwd_cb(self, callback, userdata=None):
+        """
+        This function can be called before loading a private key with a password.
+        For example,
+            password = "funPassphrase"
+            self._ctx.set_passwd_cb(lambda *_: password)
+            ...
+            self._ctx.load_cert_chain()
+        """
+        if not callable(callback):
+            raise TypeError("The specified callback must be callable")
+
+        _passwd_helper = self._wrap_cb(callback)
+        self._passwd_cb = _passwd_helper.callback
+        _lib.wolfSSL_CTX_set_default_passwd_cb(self.native_object,
+                                               self._passwd_cb)
+        self._passwd_userdata = userdata # keep it alive
+
+    def _wrap_cb(self, callback):
+        @wraps(callback)
+        def wrapper(sz, rw, userdata):
+            return callback(sz, rw, self._passwd_userdata)
+        return WolfsslPwd_cb(wrapper)
 
 class SSLSocket(object):
     """
@@ -826,12 +848,12 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
                 ciphers=None):
     """
     Takes an instance sock of socket.socket, and returns an instance of
-    wolfssl.SSLSocket, wraping the underlying socket in an SSL context.
+    wolfssl.SSLSocket, wrapping the underlying socket in an SSL context.
 
     The sock parameter must be a SOCK_STREAM socket; other socket types are
     unsupported.
 
-    The keyfile and certfile parameters specify optional files whith proper
+    The keyfile and certfile parameters specify optional files with proper
     key and the certificates used to identify the local side of the connection.
 
     The parameter server_side is a boolean which identifies whether server-side
@@ -902,3 +924,29 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
                      do_handshake_on_connect=do_handshake_on_connect,
                      suppress_ragged_eofs=suppress_ragged_eofs,
                      ciphers=ciphers)
+
+class WolfsslPwd_cb(object):
+    def __init__(self, password):
+        self._passwd_wrapper = password
+
+    @property
+    def callback(self):
+        if self._passwd_wrapper is None or isinstance(self._passwd_wrapper, bytes):
+            return _ffi.NULL
+        elif callable(self._passwd_wrapper):
+            return _ffi.callback("pem_password_cb", self._get_passwd)
+        else:
+            raise TypeError("Not callable or missing arguments")
+
+    def _get_passwd(self, passwd, sz, rw, userdata):
+        try:
+            result = self._passwd_wrapper(sz, rw, userdata)
+            if not isinstance(result, bytes):
+                raise ValueError("Problem, expected String, not bytes")
+            if len(result) > sz:
+                raise ValueError("Problem with password returned being long")
+            for i in range(len(result)):
+                passwd[i] = result[i:i + 1]
+            return len(result)
+        except Exception as e:
+            raise ValueError("Problem getting password from callback")
