@@ -543,7 +543,8 @@ class SSLSocket(object):
 
         while sent < length:
             ret = self.write(data[sent:])
-            if (ret < 0):
+            if (ret <= 0):
+                #expect to receive 0 when peer is reset or closed
                 err = _lib.wolfSSL_get_error(self.native_object, 0)
                 if err == _SSL_ERROR_WANT_WRITE:
                     raise SSLWantWriteError()
