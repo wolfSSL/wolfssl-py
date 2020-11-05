@@ -3,6 +3,7 @@ language: generic
 jobs:
     include:
         - os: linux
+          language: python
           services:
               - docker
           script:
