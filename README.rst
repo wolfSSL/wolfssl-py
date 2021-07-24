@@ -21,6 +21,7 @@ We provide Python wheels (prebuilt binaries) for OSX 64 bits and Linux 64 bits:
 
 .. code-block:: bash
 
+    $ pip install wheel
     $ pip install wolfssl
 
 To build wolfssl-py from source:
@@ -55,6 +56,10 @@ one of the following commands:
 
     $ pytest
     $ py.test tests
+
+Note: If you used USE_LOCAL_WOLFSSL in the installation step or otherwise have
+wolfSSL installed in a non-standard location, you'll need to prepend `pytest`
+with `USE_LOCAL_WOLFSSL=<path/to/wolfssl>`.
 
 Support
 =======

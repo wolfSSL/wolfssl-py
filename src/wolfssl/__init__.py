@@ -698,7 +698,7 @@ class SSLSocket(object):
                 eStr = _ffi.string(_lib.wolfSSL_ERR_error_string(err,
                                    eBuf)).decode("ascii")
 
-                if 'ASN no signer error to confirm' in eStr or err is -188:
+                if 'ASN no signer error to confirm' in eStr or err == -188:
                     # Some Python ssl consumers explicitly check error message
                     # for 'certificate verify failed'
                     raise SSLError("do_handshake failed with error %d, "
