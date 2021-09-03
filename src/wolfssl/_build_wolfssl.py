@@ -21,6 +21,7 @@
 
 import os
 import subprocess
+import argparse
 from contextlib import contextmanager
 from distutils.util import get_platform
 from wolfssl.__about__ import __wolfssl_version__ as version
@@ -86,14 +87,14 @@ def chdir(new_path, mkdir=False):
         os.chdir(old_path)
 
 
-def clone_wolfssl(version):
+def clone_wolfssl(ref):
     """ Clone wolfSSL C library repository
     """
     call("git clone --depth=1 --branch={} {} {}".format(
-        version, WOLFSSL_GIT_ADDR, WOLFSSL_SRC_PATH))
+        ref, WOLFSSL_GIT_ADDR, WOLFSSL_SRC_PATH))
 
 
-def checkout_version(version):
+def checkout_ref(ref):
     """ Ensure that we have the right version
     """
     with chdir(WOLFSSL_SRC_PATH):
@@ -101,32 +102,32 @@ def checkout_version(version):
             ["git", "describe", "--all", "--exact-match"]
         ).strip().decode().split('/')[-1]
 
-        if current != version:
+        if current != ref:
             tags = subprocess.check_output(
                 ["git", "tag"]
             ).strip().decode().split("\n")
 
-            if version != "master" and version not in tags:
-                call("git fetch --depth=1 origin tag {}".format(version))
+            if ref != "master" and ref not in tags:
+                call("git fetch --depth=1 origin tag {}".format(ref))
 
-            call("git checkout --force {}".format(version))
+            call("git checkout --force {}".format(ref))
 
             return True  # rebuild needed
 
     return False
 
 
-def ensure_wolfssl_src(version):
+def ensure_wolfssl_src(ref):
     """ Ensure that wolfssl sources are presents and up-to-date
     """
     if not os.path.isdir(WOLFSSL_SRC_PATH):
-        clone_wolfssl(version)
+        clone_wolfssl(ref)
         return True
 
-    return checkout_version(version)
+    return checkout_ref(ref)
 
 
-def make_flags(prefix):
+def make_flags(prefix, debug):
     """ Returns compilation flags
     """
     flags = []
@@ -149,6 +150,16 @@ def make_flags(prefix):
     flags.append("--enable-tlsx")
     flags.append("--enable-opensslextra")
     cflags.append("-DKEEP_PEER_CERT")
+
+    # for pyOpenSSL
+    flags.append("--enable-secure-renegotiation")
+    flags.append("--enable-opensslall")
+    cflags.append("-DFP_MAX_BITS=8192")
+    cflags.append("-DHAVE_EX_DATA")
+    cflags.append("-DOPENSSL_COMPATIBLE_DEFAULTS")
+
+    if debug:
+        flags.append("--enable-debug")
 
     # Note: websocket-client test server (echo.websocket.org) only supports
     # TLS 1.2 with TLS_RSA_WITH_AES_128_CBC_SHA
@@ -175,19 +186,27 @@ def make(configure_flags):
 
         call("./configure {}".format(configure_flags))
         call("make")
-        call("make install-exec")
+        call("make install")
 
 
-def build_wolfssl(version="master"):
+def build_wolfssl(ref, debug=False):
     prefix = local_path("lib/wolfssl/{}/{}".format(
-        get_platform(), version))
+        get_platform(), ref))
     libfile = os.path.join(prefix, 'lib/libwolfssl.la')
 
-    rebuild = ensure_wolfssl_src(version)
+    rebuild = ensure_wolfssl_src(ref)
 
     if rebuild or not os.path.isfile(libfile):
-        make(make_flags(prefix))
+        make(make_flags(prefix, debug))
 
 
 if __name__ == "__main__":
-    build_wolfssl()
+    parser = argparse.ArgumentParser(
+        description="Build underlying wolfSSL library (libwolfssl).")
+    parser.add_argument("-d", "--debug", action="store_true",
+        help="Build libwolfssl with debug enabled.")
+    parser.add_argument("-r", '--ref', default="master",
+        help="Git ref to check out when cloning wolfSSL.")
+    args = parser.parse_args()
+    build_wolfssl(args.ref, args.debug)
+
