@@ -942,6 +942,14 @@ class WolfsslPwd_cb(object):
     def _get_passwd(self, passwd, sz, rw, userdata):
         try:
             result = self._passwd_wrapper(sz, rw, userdata)
+
+            # if the result returned is a string then try to convert it
+            try:
+                if isinstance(result, str):
+                    result = str.encode(result)
+            except Exception as e:
+                pass
+
             if not isinstance(result, bytes):
                 raise ValueError("Problem, expected String, not bytes")
             if len(result) > sz:

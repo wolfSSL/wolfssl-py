@@ -100,6 +100,14 @@ def get_method(index):
     )[index]
 
 
+# Callback for wolfssl/certs/client-keyEnc.pem (yassl123 password)
+# sz is the max size of password allowed
+# rw is type i.e PEM_PASS_READ
+# userdata is a void pointer potentially set by user
+def password_cb(sz, rw, userdata):
+    return "yassl123"
+
+
 def main():
     args = build_arg_parser().parse_args()
 
@@ -110,6 +118,7 @@ def main():
 
     context = wolfssl.SSLContext(get_method(args.v))
 
+    context.set_passwd_cb(password_cb)
     context.load_cert_chain(args.c, args.k)
 
     if args.d:
