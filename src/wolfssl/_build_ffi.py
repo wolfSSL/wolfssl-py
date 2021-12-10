@@ -43,12 +43,19 @@ def make_optional_func_list(libwolfssl_path, funcs):
             except AttributeError as _:
                 pass
     # Can't discover functions in a static library with ctypes. Need to fall
-    # back to running nm as a subprocess.
+    # back to running nm, if available, as a subprocess.
     else:
-        nm_cmd = "nm --defined-only {}".format(libwolfssl_path)
-        result = subprocess.run(shlex.split(nm_cmd), capture_output=True)
-        nm_stdout = result.stdout.decode()
-        defined = [func for func in funcs if func.name in nm_stdout]
+        which_cmd = "which nm"
+        result = subprocess.run(shlex.split(which_cmd))
+        if result.returncode == 0:
+            nm_cmd = "nm --defined-only {}".format(libwolfssl_path)
+            result = subprocess.run(shlex.split(nm_cmd), capture_output=True)
+            nm_stdout = result.stdout.decode()
+            defined = [func for func in funcs if func.name in nm_stdout]
+        else:
+            print(("WARNING: Can't determine available libwolfssl functions."
+                   " Assuming all optional functions are available."))
+            defined = funcs
 
     return defined
 
@@ -63,6 +70,9 @@ WolfFunction = namedtuple("WolfFunction", ["name", "native_sig", "ossl_sig"])
 # Depending on how wolfSSL was configured, the functions below may or may not be
 # defined.
 optional_funcs = [
+    WolfFunction("wolfSSL_Rehandshake",
+                 "int wolfSSL_Rehandshake(WOLFSSL*)",
+                 "int SSL_renegotiate(SSL*)"),
     WolfFunction("wolfSSL_ERR_func_error_string",
                  "const char* wolfSSL_ERR_func_error_string(unsigned long)",
                  "const char* ERR_func_error_string(unsigned long)"),

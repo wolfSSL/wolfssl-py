@@ -230,7 +230,6 @@ def construct_cdef(optional_funcs):
         X509*         SSL_get_peer_certificate(SSL*);
         const char*   SSL_alert_type_string_long(int);
         const char*   SSL_alert_desc_string_long(int);
-        int           SSL_renegotiate(SSL*);
         void          SSL_get0_next_proto_negotiated(const SSL*,
                           const unsigned char**, unsigned*);
         const char*   SSL_get_servername(SSL*, unsigned char);
