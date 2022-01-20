@@ -50,8 +50,8 @@ from wolfssl.exceptions import (  # noqa: F401
 
 from wolfssl._methods import (  # noqa: F401
     PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLSv1,
-    PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2, PROTOCOL_TLS,
-    WolfSSLMethod as _WolfSSLMethod
+    PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2, PROTOCOL_TLSv1_3,
+    PROTOCOL_TLS, WolfSSLMethod as _WolfSSLMethod
 )
 
 CERT_NONE = 0
@@ -903,10 +903,6 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
     Note:
         Which connections succeed will vary depending on the versions of the
         ssl providers on both sides of the communication.
-
-    Note 2:
-        For TLS 1.3 connections use PROTOCOL_TLS as there is no dedicated
-        PROTOCOL constant for just TLS 1.3.
 
     The ciphers parameter sets the available ciphers for this SSL object. It
     should be a string in the wolfSSL cipher list format.
