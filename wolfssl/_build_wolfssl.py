@@ -30,9 +30,8 @@ from wolfssl.__about__ import __wolfssl_version__ as version
 def local_path(path):
     """ Return path relative to the root of this project
     """
-    current = os.path.dirname(__file__)
-    gparent = os.path.dirname(os.path.dirname(current))
-    return os.path.abspath(os.path.join(gparent, path))
+    current = os.path.abspath(os.getcwd())
+    return os.path.abspath(os.path.join(current, path))
 
 
 WOLFSSL_GIT_ADDR = "https://github.com/wolfssl/wolfssl.git"
@@ -145,6 +144,7 @@ def make_flags(prefix, debug):
 
     # tls 1.3
     flags.append("--enable-tls13")
+    flags.append("--enable-sslv3")
 
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")

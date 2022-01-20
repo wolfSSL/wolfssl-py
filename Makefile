@@ -30,9 +30,11 @@ clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and 
 
 
 clean-build: ## remove build artifacts
+	rm -fr lib/
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
+	rm -fr wolfssl/_ffi*
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
 
@@ -81,7 +83,7 @@ servedocs: docs ## compile the docs watching for changes
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist
-	
+
 	./make/osx/build_wheels.sh
 
 	./make/manylinux1/build_wheels.sh

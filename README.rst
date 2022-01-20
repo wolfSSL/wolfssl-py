@@ -13,6 +13,16 @@ library targeted at IoT, embedded, and RTOS environments primarily because of
 its size, speed, and feature set. It works seamlessly in desktop, enterprise,
 and cloud environments as well.
 
+Compiling
+=========
+
+The `setup.py` file covers most things you will need to do to build and install from source. As pre-requisites you will need to install either from your OS repository or pip. You'll also need the Python development package for your Python version:
+
+* `cffi`
+* `tox`
+* `pytest`
+
+To build a source package run `python setup.py sdist`, to build a wheel package run `python setup.py bdist_wheel`. To test the build run `tox`. The `tox` tests rely on Python 3.9 being installed, if you do not have this version we recommend using `pyenv` to install it.
 
 Installation
 ============

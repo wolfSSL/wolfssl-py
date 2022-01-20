@@ -138,6 +138,7 @@ class SSLContext(object):
     """
 
     def __init__(self, protocol, server_side=None):
+        _lib.wolfSSL_Init()
         method = _WolfSSLMethod(protocol, server_side)
 
         self.protocol = protocol

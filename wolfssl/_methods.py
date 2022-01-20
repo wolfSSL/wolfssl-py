@@ -43,7 +43,7 @@ _DYNAMIC_TYPE_METHOD = 11
 
 
 def _native_free(native_object, dynamic_type):
-    _lib.wolfSSL_Free(native_object, _ffi.NULL, dynamic_type)
+    _lib.wolfSSL_Free(native_object)
 
 
 class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
@@ -71,6 +71,11 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
             self.native_object =                                     \
                 _lib.wolfTLSv1_2_server_method() if server_side else \
                 _lib.wolfTLSv1_2_client_method()
+
+        elif protocol == PROTOCOL_TLSv1_3:
+            self.native_object =                                     \
+                _lib.wolfTLSv1_3_server_method() if server_side else \
+                _lib.wolfTLSv1_3_client_method()
 
         elif protocol in [PROTOCOL_SSLv23, PROTOCOL_TLS]:
             self.native_object =                                    \
