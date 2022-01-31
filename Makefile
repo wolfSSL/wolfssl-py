@@ -30,13 +30,13 @@ clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and 
 
 
 clean-build: ## remove build artifacts
-	rm -fr lib/
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
 	rm -fr wolfssl/_ffi*
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
+	-cd lib/wolfssl && make clean
 
 clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyc' -exec rm -f {} +
