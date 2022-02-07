@@ -24,13 +24,16 @@
 
 from distutils.util import get_platform
 from cffi import FFI
-from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
+from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path, ensure_wolfssl_src, make, make_flags, local_path
+from wolfssl.__about__ import __wolfssl_version__ as version
 import wolfssl._openssl as openssl
 import subprocess
 import shlex
 import os
 from ctypes import cdll
 from collections import namedtuple
+
+libwolfssl_path = ""
 
 def make_optional_func_list(libwolfssl_path, funcs):
     if libwolfssl_path.endswith(".so"):
@@ -52,12 +55,26 @@ def make_optional_func_list(libwolfssl_path, funcs):
 
     return defined
 
-libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.a")
-if not os.path.exists(libwolfssl_path):
-    libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.so")
+def get_libwolfssl():
+    libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.a")
     if not os.path.exists(libwolfssl_path):
-        err = "Couldn't find libwolfssl under {}.".format(wolfssl_lib_path())
-        raise Exception(err)
+        libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.so")
+        if not os.path.exists(libwolfssl_path):
+            return 0
+        else:
+            return 1
+    else:
+        return 1
+
+def generate_libwolfssl():
+    ensure_wolfssl_src(version)
+    prefix = local_path("lib/wolfssl/{}/{}".format(
+        get_platform(), version))
+    make(make_flags(prefix, False))
+
+if get_libwolfssl() == 0:
+    generate_libwolfssl()
+    get_libwolfssl()
 
 WolfFunction = namedtuple("WolfFunction", ["name", "native_sig", "ossl_sig"])
 # Depending on how wolfSSL was configured, the functions below may or may not be
@@ -175,6 +192,7 @@ cdef = """
     /**
      * SSL/TLS Session functions
      */
+    void wolfSSL_Init();
     WOLFSSL* wolfSSL_new(WOLFSSL_CTX*);
     void  wolfSSL_free(WOLFSSL*);
 
@@ -276,5 +294,4 @@ for func in optional_funcs:
 ffi_cdef = cdef + openssl.construct_cdef(optional_funcs)
 ffi.cdef(ffi_cdef)
 
-if __name__ == "__main__":
-    ffi.compile(verbose=True)
+ffi.compile(verbose=True)

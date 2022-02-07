@@ -30,19 +30,17 @@ from wolfssl.__about__ import __wolfssl_version__ as version
 def local_path(path):
     """ Return path relative to the root of this project
     """
-    current = os.path.dirname(__file__)
-    gparent = os.path.dirname(os.path.dirname(current))
-    return os.path.abspath(os.path.join(gparent, path))
+    current = os.path.abspath(os.getcwd())
+    return os.path.abspath(os.path.join(current, path))
 
 
-WOLFSSL_GIT_ADDR = "https://github.com/wolfssl/wolfssl.git"
-WOLFSSL_SRC_PATH = local_path("lib/wolfssl/src")
+WOLFSSL_SRC_PATH = local_path("lib/wolfssl")
 
 
 def wolfssl_inc_path():
     wolfssl_path = os.environ.get("USE_LOCAL_WOLFSSL")
     if wolfssl_path is None:
-        return local_path("lib/wolfssl/src")
+        return local_path("lib/wolfssl")
     else:
         if os.path.isdir(wolfssl_path) and os.path.exists(wolfssl_path):
             return wolfssl_path + "/include"
@@ -87,20 +85,17 @@ def chdir(new_path, mkdir=False):
         os.chdir(old_path)
 
 
-def clone_wolfssl(ref):
-    """ Clone wolfSSL C library repository
-    """
-    call("git clone --depth=1 --branch={} {} {}".format(
-        ref, WOLFSSL_GIT_ADDR, WOLFSSL_SRC_PATH))
-
-
 def checkout_ref(ref):
     """ Ensure that we have the right version
     """
     with chdir(WOLFSSL_SRC_PATH):
-        current = subprocess.check_output(
-            ["git", "describe", "--all", "--exact-match"]
-        ).strip().decode().split('/')[-1]
+        current = ""
+        try:
+            current = subprocess.check_output(
+                ["git", "describe", "--all", "--exact-match"]
+            ).strip().decode().split('/')[-1]
+        except:
+            pass
 
         if current != ref:
             tags = subprocess.check_output(
@@ -120,9 +115,13 @@ def checkout_ref(ref):
 def ensure_wolfssl_src(ref):
     """ Ensure that wolfssl sources are presents and up-to-date
     """
-    if not os.path.isdir(WOLFSSL_SRC_PATH):
-        clone_wolfssl(ref)
-        return True
+    if not os.path.isdir("lib"):
+        os.mkdir("lib")
+        with chdir("lib"):
+            subprocess.run(["git", "clone", "--depth=1", "https://github.com/wolfssl/wolfssl"])
+
+    if not os.path.isdir(os.path.join(WOLFSSL_SRC_PATH, "wolfssl")):
+        subprocess.run(["git", "submodule", "update", "--init", "--depth=1"])
 
     return checkout_ref(ref)
 
@@ -145,6 +144,7 @@ def make_flags(prefix, debug):
 
     # tls 1.3
     flags.append("--enable-tls13")
+    flags.append("--enable-sslv3")
 
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")

@@ -27,12 +27,13 @@ import pytest
 
 HOST = "www.python.org"
 PORT = 443
-CA_CERTS = "certs/ca-digicert-ev.pem"
+CA_CERTS = "certs/ca-globalsign-r3.pem"
 
 
 @pytest.fixture(
     params=["wrap_socket", "wrap_socket_with_ca",
             "wrap_socket_from_context", "ssl_socket"])
+
 def secure_socket(request, ssl_provider, tcp_socket):
     sock = None
 
@@ -63,7 +64,6 @@ def secure_socket(request, ssl_provider, tcp_socket):
     if sock:
         yield sock
         sock.close()
-
 
 def test_secure_connection(secure_socket):
     secure_socket.connect((HOST, PORT))
