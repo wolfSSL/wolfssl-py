@@ -155,7 +155,7 @@ class SSLContext(object):
         method.native_object = _ffi.NULL
 
         if self.native_object == _ffi.NULL:
-            raise MemoryError("Unnable to allocate context object")
+            raise MemoryError("Unable to allocate context object")
 
         # verify_mode initialization needs a valid native_object.
         self.verify_mode = CERT_NONE
@@ -438,12 +438,12 @@ class SSLSocket(object):
         # create the SSL object
         self.native_object = _lib.wolfSSL_new(self.context.native_object)
         if self.native_object == _ffi.NULL:
-            raise MemoryError("Unnable to allocate ssl object")
+            raise MemoryError("Unable to allocate ssl object")
 
         ret = _lib.wolfSSL_set_fd(self.native_object, self._sock.fileno())
         if ret != _SSL_SUCCESS:
             self._release_native_object()
-            raise ValueError("Unnable to set fd to ssl object")
+            raise ValueError("Unable to set fd to ssl object")
 
         # match domain name / host name if set in context
         if server_hostname is not None:
@@ -807,7 +807,7 @@ class SSLSocket(object):
                 'subjectAltName': x509.get_altnames() }
 
     # The following functions expose functionality of the underlying
-    # Socket object. These are also expsed through Python's ssl module
+    # Socket object. These are also exposed through Python's ssl module
     # API and are provided here for compatibility.
     def close(self):
         self._sock.close()

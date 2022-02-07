@@ -45,7 +45,7 @@ The default pip install clones wolfSSL from GitHub. To build wolfssl-py using a
 local installation of the native wolfSSL C library, the USE_LOCAL_WOLFSSL
 environment variable should be set.  USE_LOCAL_WOLFSSL can be set to "1" to use
 the default library installation location (/usr/local/lib, /usr/local/include),
-or to use a custom location it can be set to the install locaiton of your native
+or to use a custom location it can be set to the install location of your native
 wolfSSL library.  For example:
 
 .. code-block:: bash

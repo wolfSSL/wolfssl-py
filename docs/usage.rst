@@ -16,7 +16,7 @@ Note 1:
     time and resources.
 
 Note 2:
-    Each path provides its own options for fine-tuning the securint parameters.
+    Each path provides its own options for fine-tuning the security parameters.
     Check them out in the API documentation.
 
 
