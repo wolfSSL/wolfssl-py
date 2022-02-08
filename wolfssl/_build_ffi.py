@@ -2,7 +2,7 @@
 #
 # build_ffi.py
 #
-# Copyright (C) 2006-2020 wolfSSL Inc.
+# Copyright (C) 2006-2022 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -22,10 +22,11 @@
 
 # pylint: disable=missing-docstring, invalid-name
 
+import argparse
+from contextlib import contextmanager
 from distutils.util import get_platform
 from cffi import FFI
-from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path, ensure_wolfssl_src, make, make_flags, local_path
-from wolfssl.__about__ import __wolfssl_version__ as version
+from wolfssl._version import __wolfssl_version__ as version
 import wolfssl._openssl as openssl
 import subprocess
 import shlex
@@ -34,6 +35,180 @@ from ctypes import cdll
 from collections import namedtuple
 
 libwolfssl_path = ""
+
+
+def local_path(path):
+    """ Return path relative to the root of this project
+    """
+    current = os.path.abspath(os.getcwd())
+    return os.path.abspath(os.path.join(current, path))
+
+
+WOLFSSL_SRC_PATH = local_path("lib/wolfssl")
+
+
+def wolfssl_inc_path():
+    wolfssl_path = os.environ.get("USE_LOCAL_WOLFSSL")
+    if wolfssl_path is None:
+        return local_path("lib/wolfssl")
+    else:
+        if os.path.isdir(wolfssl_path) and os.path.exists(wolfssl_path):
+            return wolfssl_path + "/include"
+        else:
+            return "/usr/local/include"
+
+
+def wolfssl_lib_path():
+    wolfssl_path = os.environ.get("USE_LOCAL_WOLFSSL")
+    if wolfssl_path is None:
+        return local_path("lib/wolfssl/{}/{}/lib".format(
+                          get_platform(), version))
+    else:
+        if os.path.isdir(wolfssl_path) and os.path.exists(wolfssl_path):
+            return wolfssl_path + "/lib"
+        else:
+            return "/usr/local/lib"
+
+
+def call(cmd):
+    print("Calling: '{}' from working directory {}".format(cmd, os.getcwd()))
+
+    old_env = os.environ["PATH"]
+    os.environ["PATH"] = "{}:{}".format(WOLFSSL_SRC_PATH, old_env)
+    subprocess.check_call(cmd, shell=True, env=os.environ)
+    os.environ["PATH"] = old_env
+
+
+@contextmanager
+def chdir(new_path, mkdir=False):
+    old_path = os.getcwd()
+
+    if mkdir:
+        try:
+            os.mkdir(new_path)
+        except OSError:
+            pass
+
+    try:
+        yield os.chdir(new_path)
+    finally:
+        os.chdir(old_path)
+
+
+def checkout_ref(ref):
+    """ Ensure that we have the right version
+    """
+    with chdir(WOLFSSL_SRC_PATH):
+        current = ""
+        try:
+            current = subprocess.check_output(
+                ["git", "describe", "--all", "--exact-match"]
+            ).strip().decode().split('/')[-1]
+        except:
+            pass
+
+        if current != ref:
+            tags = subprocess.check_output(
+                ["git", "tag"]
+            ).strip().decode().split("\n")
+
+            if ref != "master" and ref not in tags:
+                call("git fetch --depth=1 origin tag {}".format(ref))
+
+            call("git checkout --force {}".format(ref))
+
+            return True  # rebuild needed
+
+    return False
+
+
+def ensure_wolfssl_src(ref):
+    """ Ensure that wolfssl sources are presents and up-to-date
+    """
+    if not os.path.isdir("lib"):
+        os.mkdir("lib")
+        with chdir("lib"):
+            subprocess.run(["git", "clone", "--depth=1", "https://github.com/wolfssl/wolfssl"])
+
+    if not os.path.isdir(os.path.join(WOLFSSL_SRC_PATH, "wolfssl")):
+        subprocess.run(["git", "submodule", "update", "--init", "--depth=1"])
+
+    return checkout_ref(ref)
+
+
+def make_flags(prefix, debug):
+    """ Returns compilation flags
+    """
+    flags = []
+    cflags = []
+
+    if get_platform() in ["linux-x86_64", "linux-i686"]:
+        cflags.append("-fpic")
+
+    # install location
+    flags.append("--prefix={}".format(prefix))
+
+    # lib only
+    flags.append("--disable-shared")
+    flags.append("--disable-examples")
+
+    # tls 1.3
+    flags.append("--enable-tls13")
+    flags.append("--enable-sslv3")
+
+    # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
+    flags.append("--enable-tlsx")
+    flags.append("--enable-opensslextra")
+    cflags.append("-DKEEP_PEER_CERT")
+
+    # for pyOpenSSL
+    flags.append("--enable-secure-renegotiation")
+    flags.append("--enable-opensslall")
+    cflags.append("-DFP_MAX_BITS=8192")
+    cflags.append("-DHAVE_EX_DATA")
+    cflags.append("-DOPENSSL_COMPATIBLE_DEFAULTS")
+
+    if debug:
+        flags.append("--enable-debug")
+
+    # Note: websocket-client test server (echo.websocket.org) only supports
+    # TLS 1.2 with TLS_RSA_WITH_AES_128_CBC_SHA
+    # If compiling for use with websocket-client, must enable static RSA suites.
+    # cflags.append("-DWOLFSSL_STATIC_RSA")
+
+    joined_flags = " ".join(flags)
+    joined_cflags = " ".join(cflags)
+
+    return joined_flags + " CFLAGS=\"" + joined_cflags + "\""
+
+
+def make(configure_flags):
+    """ Create a release of wolfSSL C library
+    """
+    with chdir(WOLFSSL_SRC_PATH):
+        call("git clean -fdX")
+
+        try:
+            call("./autogen.sh")
+        except subprocess.CalledProcessError:
+            call("libtoolize")
+            call("./autogen.sh")
+
+        call("./configure {}".format(configure_flags))
+        call("make")
+        call("make install")
+
+
+def build_wolfssl(ref, debug=False):
+    prefix = local_path("lib/wolfssl/{}/{}".format(
+        get_platform(), ref))
+    libfile = os.path.join(prefix, 'lib/libwolfssl.la')
+
+    rebuild = ensure_wolfssl_src(ref)
+
+    if rebuild or not os.path.isfile(libfile):
+        make(make_flags(prefix, debug))
+
 
 def make_optional_func_list(libwolfssl_path, funcs):
     if libwolfssl_path.endswith(".so"):
@@ -55,6 +230,7 @@ def make_optional_func_list(libwolfssl_path, funcs):
 
     return defined
 
+
 def get_libwolfssl():
     libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.a")
     if not os.path.exists(libwolfssl_path):
@@ -66,11 +242,13 @@ def get_libwolfssl():
     else:
         return 1
 
+
 def generate_libwolfssl():
     ensure_wolfssl_src(version)
     prefix = local_path("lib/wolfssl/{}/{}".format(
         get_platform(), version))
     make(make_flags(prefix, False))
+
 
 if get_libwolfssl() == 0:
     generate_libwolfssl()
@@ -294,4 +472,5 @@ for func in optional_funcs:
 ffi_cdef = cdef + openssl.construct_cdef(optional_funcs)
 ffi.cdef(ffi_cdef)
 
-ffi.compile(verbose=True)
+if __name__ == "__main__":
+    ffi.compile(verbose=True)

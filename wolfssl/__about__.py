@@ -2,7 +2,7 @@
 #
 # __about__.py
 #
-# Copyright (C) 2006-2020 wolfSSL Inc.
+# Copyright (C) 2006-2022 wolfSSL Inc.
 #
 # This file is part of wolfSSL. (formerly known as CyaSSL)
 #
@@ -20,27 +20,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 
+from wolfssl._version import __version__, __wolfssl_version__
+
 __title__ = "wolfssl"
 __summary__ = "Python module that encapsulates wolfSSL's C SSL/TLS library."
 __uri__ = "https://github.com/wolfssl/wolfssl-py"
-
-# When bumping the C library version, reset the POST count to 0
-
-__wolfssl_version__ = "v5.1.1-stable"
-
-# We're using implicit post releases [PEP 440] to bump package version
-# while maintaining the C library version intact for better reference.
-# https://www.python.org/dev/peps/pep-0440/#implicit-post-releases
-#
-# MAJOR.MINOR.BUILD-POST
-
-__version__ = __wolfssl_version__[1:].replace("stable", "0")
 
 __author__ = "wolfSSL Inc."
 __email__ = "info@wolfssl.com"
 
 __license__ = "GPLv2 or Commercial License"
-__copyright__ = "Copyright (C) 2006-2020 wolfSSL Inc"
+__copyright__ = "Copyright (C) 2006-2022 wolfSSL Inc"
 
 __all__ = [
     "__title__", "__summary__", "__uri__", "__version__",

@@ -67,3 +67,7 @@ venv_*
 
 # code editor preferences
 .vscode
+
+# wolfSSL specific things
+wolfssl/_ffi*
+tmpdist/

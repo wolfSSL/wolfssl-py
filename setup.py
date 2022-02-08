@@ -26,11 +26,21 @@ import sys
 from setuptools import setup
 from setuptools.command.build_ext import build_ext
 
-
-import wolfssl
-from wolfssl._build_wolfssl import build_wolfssl
-from wolfssl._build_wolfssl import wolfssl_inc_path, wolfssl_lib_path
-
+import re
+VERSIONFILE = "wolfssl/_version.py"
+verstrline = open(VERSIONFILE, "rt").read()
+VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    verstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+VSRE = r"^__wolfssl_version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    wolfverstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
 # long_description
 with open("README.rst") as readme_file:
@@ -60,30 +70,16 @@ def verify_wolfssl_config():
         raise RuntimeError("wolfSSL needs to be compiled with "
             "--enable-opensslextra")
 
-class cffiBuilder(build_ext, object):
-
-    def build_extension(self, ext):
-        """ Compile manually the wolfssl-py extension, bypass setuptools
-        """
-
-        # if USE_LOCAL_WOLFSSL environment variable has been defined,
-        # do not clone and compile wolfSSL from GitHub
-        if os.environ.get("USE_LOCAL_WOLFSSL") is None:
-            build_wolfssl(wolfssl.__wolfssl_version__)
-
-        verify_wolfssl_config()
-
-        super(cffiBuilder, self).build_extension(ext)
 
 setup(
-    name=wolfssl.__title__,
-    version=wolfssl.__version__,
-    description=wolfssl.__summary__,
+    name="wolfssl",
+    version=verstr,
+    description="Python module that encapsulates wolfSSL's C SSL/TLS library.",
     long_description=long_description,
-    author=wolfssl.__author__,
-    author_email=wolfssl.__email__,
-    url=wolfssl.__uri__,
-    license=wolfssl.__license__,
+    author="wolfSSL Inc.",
+    author_email="info@wolfssl.com",
+    url="https://github.com/wolfssl/wolfssl-py",
+    license="GPLv2 or Commercial License",
 
     packages=["wolfssl"],
 
@@ -107,6 +103,5 @@ setup(
     setup_requires=["cffi"],
     install_requires=["cffi"],
     test_suite="tests",
-    tests_require=["tox", "pytest"],
-    cmdclass={"build_ext" : cffiBuilder}
+    tests_require=["tox", "pytest"]
 )
