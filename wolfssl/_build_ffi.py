@@ -250,7 +250,8 @@ def generate_libwolfssl():
     make(make_flags(prefix, False))
 
 
-if get_libwolfssl() == 0:
+local_wolfssl = os.environ.get("USE_LOCAL_WOLFSSL")
+if local_wolfssl and get_libwolfssl() == 0:
     generate_libwolfssl()
     get_libwolfssl()
 
