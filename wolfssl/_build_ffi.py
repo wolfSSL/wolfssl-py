@@ -31,6 +31,7 @@ import wolfssl._openssl as openssl
 import subprocess
 import shlex
 import os
+import sys
 from ctypes import cdll
 from collections import namedtuple
 
@@ -249,11 +250,38 @@ def generate_libwolfssl():
         get_platform(), version))
     make(make_flags(prefix, False))
 
-
+# detect features if user has built against local wolfSSL library
+# if they are not, we are controlling build options above
 local_wolfssl = os.environ.get("USE_LOCAL_WOLFSSL")
-if local_wolfssl and get_libwolfssl() == 0:
-    generate_libwolfssl()
-    get_libwolfssl()
+if local_wolfssl:
+    # Try to do native wolfSSL/wolfCrypt feature detection.
+    # Open <wolfssl/options.h> header to parse for #define's
+    # This will throw a FileNotFoundError if not able to find options.h
+    optionsHeaderPath = wolfssl_inc_path() + "/wolfssl/options.h"
+    optionsHeader = open(optionsHeaderPath, 'r')
+    optionsHeaderStr = optionsHeader.read()
+    optionsHeader.close()
+    # require HAVE_SNI (--enable-sni) in native lib
+    if '#define HAVE_SNI' not in optionsHeaderStr:
+        raise RuntimeError("wolfSSL needs to be compiled with --enable-sni")
+
+    # require OPENSSL_EXTRA (--enable-opensslextra) in native lib
+    if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
+        raise RuntimeError("wolfSSL needs to be compiled with "
+            "--enable-opensslextra")
+    featureDetection = 1
+    sys.stderr.write("\nDEBUG: Found <wolfssl/options.h>, attempting native "
+                     "feature detection\n")
+
+else:
+    optionsHeaderStr = ""
+    featureDetection = 0
+    sys.stderr.write("\nDEBUG: Skipping native feature detection, build not "
+                     "using USE_LOCAL_WOLFSSL\n")
+    if get_libwolfssl() == 0:
+        generate_libwolfssl()
+        get_libwolfssl()
+
 
 WolfFunction = namedtuple("WolfFunction", ["name", "native_sig", "ossl_sig"])
 # Depending on how wolfSSL was configured, the functions below may or may not be
