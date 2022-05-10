@@ -50,27 +50,6 @@ with open("LICENSING.rst") as licensing_file:
     long_description = long_description.replace(".. include:: LICENSING.rst\n",
                                                 licensing_file.read())
 
-def verify_wolfssl_config():
-    # verify wolfSSL library has been configured correctly, so that cffi
-    # binding work correctly.
-
-    # open <wolfssl/options.h> header to parse for #define's
-    # This will throw a FileNotFoundError if not able to find options.h
-    optionsHeaderPath = wolfssl_inc_path() + "/wolfssl/options.h"
-    optionsHeader = open(optionsHeaderPath, 'r')
-    optionsHeaderStr = optionsHeader.read()
-    optionsHeader.close()
-
-    # require HAVE_SNI (--enable-sni) in native lib
-    if '#define HAVE_SNI' not in optionsHeaderStr:
-        raise RuntimeError("wolfSSL needs to be compiled with --enable-sni")
-
-    # require OPENSSL_EXTRA (--enable-opensslextra) in native lib
-    if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
-        raise RuntimeError("wolfSSL needs to be compiled with "
-            "--enable-opensslextra")
-
-
 setup(
     name="wolfssl",
     version=verstr,
