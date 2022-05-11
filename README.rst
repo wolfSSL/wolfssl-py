@@ -56,20 +56,28 @@ wolfSSL library.  For example:
     # Uses custom install location
     $ USE_LOCAL_WOLFSSL=/tmp/install pip install .
 
-Tests
-=====
+Testing
+=======
 
-To run the tests that ship with wolfssl-py, after compiling the library run
-one of the following commands:
+To run the tox tests in the source code, you'll need ``tox`` and a few other
+requirements.
 
-.. code-block:: bash
+1. Make sure that the testing requirements are installed:
 
-    $ pytest
-    $ py.test tests
+.. code-block:: shell
 
-Note: If you used USE_LOCAL_WOLFSSL in the installation step or otherwise have
-wolfSSL installed in a non-standard location, you'll need to prepend `pytest`
-with `USE_LOCAL_WOLFSSL=<path/to/wolfssl>`.
+    sudo -H pip install -r requirements/test.txt
+
+
+2. Run ``make check``:
+
+.. code-block:: console
+
+    $ make check
+    ...
+    _________________________________ summary _________________________________
+    py3: commands succeeded
+    congratulations :)
 
 Support
 =======
