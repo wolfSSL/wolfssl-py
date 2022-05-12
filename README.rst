@@ -1,9 +1,6 @@
 Welcome
 =======
 
-.. image:: https://travis-ci.org/wolfSSL/wolfssl-py.svg?branch=master
-    :target: https://travis-ci.org/wolfSSL/wolfssl-py
-
 **wolfSSL Python**, a.k.a. ``wolfssl`` is a Python module
 that encapsulates `wolfSSL's SSL/TLS library
 <https://wolfssl.com/wolfSSL/Products-wolfssl.html>`_.
