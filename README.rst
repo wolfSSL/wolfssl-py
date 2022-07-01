@@ -10,6 +10,19 @@ library targeted at IoT, embedded, and RTOS environments primarily because of
 its size, speed, and feature set. It works seamlessly in desktop, enterprise,
 and cloud environments as well.
 
+Prerequisites
+=============
+
+Linux
+-----
+
+During installation via pip this will download the wolfSSL source and compile it, it therefore needs the same prerequisites as the wolfSSL C library. Therefore in Debian / Ubuntu you should do:
+
+.. code-block:: bash
+
+   $ sudo apt install build-essential
+   $ sudo apt build-dep libwolfssl-dev
+
 Compiling
 =========
 
