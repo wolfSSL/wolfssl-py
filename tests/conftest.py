@@ -45,11 +45,13 @@ def ssl_provider(request):
 
 
 @pytest.fixture(
-    params=["TLSv1.1", "TLSv1.2", "SSLv23"])
+    params=["TLSv1.1", "TLSv1.2", "TLSv1.3", "SSLv23"])
 def ssl_context(ssl_provider, request):
     if request.param == "TLSv1.1":
         return ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLSv1_1)
     if request.param == "TLSv1.2":
         return ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLSv1_2)
+    if request.param == "TLSv1.3":
+        return ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLSv1_3)
     if request.param == "SSLv23":
         return ssl_provider.SSLContext(ssl_provider.PROTOCOL_SSLv23)

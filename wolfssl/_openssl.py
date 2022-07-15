@@ -63,6 +63,7 @@ def construct_cdef(optional_funcs):
         static const long SSL_OP_NO_TLSv1;
         static const long SSL_OP_NO_TLSv1_1;
         static const long SSL_OP_NO_TLSv1_2;
+        static const long SSL_OP_NO_TLSv1_3;
         static const long SSL_MODE_RELEASE_BUFFERS;
         static const long SSL_OP_SINGLE_DH_USE;
         static const long SSL_OP_SINGLE_ECDH_USE;
@@ -175,11 +176,14 @@ def construct_cdef(optional_funcs):
         SSL_METHOD* TLSv1_1_client_method(void);
         SSL_METHOD* TLSv1_2_server_method(void);
         SSL_METHOD* TLSv1_2_client_method(void);
+        SSL_METHOD* TLSv1_3_server_method(void);
+        SSL_METHOD* TLSv1_3_client_method(void);
         SSL_METHOD* SSLv23_server_method(void);
         SSL_METHOD* SSLv23_client_method(void);
         SSL_METHOD* SSLv23_method(void);
         SSL_METHOD* TLSv1_1_method(void);
         SSL_METHOD* TLSv1_2_method(void);
+        SSL_METHOD* TLSv1_3_method(void);
 
         /**
          * SSL/TLS Context functions

@@ -25,7 +25,7 @@
 import pytest
 from wolfssl._methods import (WolfSSLMethod, PROTOCOL_SSLv3, PROTOCOL_SSLv23,
                               PROTOCOL_TLS, PROTOCOL_TLSv1, PROTOCOL_TLSv1_1,
-                              PROTOCOL_TLSv1_2)
+                              PROTOCOL_TLSv1_2, PROTOCOL_TLSv1_3)
 from wolfssl._ffi import ffi as _ffi
 
 
@@ -37,8 +37,9 @@ def unsupported_method(request):
 
 
 @pytest.fixture(
-    params=[PROTOCOL_SSLv23, PROTOCOL_TLS, PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2],
-    ids=["SSLv23", "TLS", "TLSv1_1", "TLSv1_2"])
+    params=[PROTOCOL_SSLv23, PROTOCOL_TLS, PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2,
+            PROTOCOL_TLSv1_3],
+    ids=["SSLv23", "TLS", "TLSv1_1", "TLSv1_2", "TLSv1_3"])
 def supported_method(request):
     yield request.param
 
