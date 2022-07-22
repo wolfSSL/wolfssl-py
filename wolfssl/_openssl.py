@@ -31,7 +31,7 @@ source = """
     #include <wolfssl/openssl/crypto.h>
 """
 
-def construct_cdef(optional_funcs):
+def construct_cdef(optional_funcs, OLDTLS_ENABLED):
     cdef = """
         /**
          * Constants
@@ -172,8 +172,15 @@ def construct_cdef(optional_funcs):
         /**
          * SSL/TLS Method functions
          */
+        """
+
+    if OLDTLS_ENABLED:
+        cdef += """
         SSL_METHOD* TLSv1_1_server_method(void);
         SSL_METHOD* TLSv1_1_client_method(void);
+        """
+
+    cdef += """
         SSL_METHOD* TLSv1_2_server_method(void);
         SSL_METHOD* TLSv1_2_client_method(void);
         SSL_METHOD* TLSv1_3_server_method(void);
@@ -181,7 +188,14 @@ def construct_cdef(optional_funcs):
         SSL_METHOD* SSLv23_server_method(void);
         SSL_METHOD* SSLv23_client_method(void);
         SSL_METHOD* SSLv23_method(void);
+        """
+
+    if OLDTLS_ENABLED:
+        cdef += """
         SSL_METHOD* TLSv1_1_method(void);
+        """
+
+    cdef += """
         SSL_METHOD* TLSv1_2_method(void);
         SSL_METHOD* TLSv1_3_method(void);
 
