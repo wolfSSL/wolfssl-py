@@ -53,8 +53,10 @@ def build_arg_parser():
     )
 
     parser.add_argument(
-        "-v", metavar="version", type=int, choices=[0, 1, 2, 3, 4], default=4,
-        help="SSL version [0-4] (SSLv3, TLSv1, TLSv1.1, TLSv1.2, SSLv23)"
+        "-v", metavar="version", type=int, choices=[0, 1, 2, 3, 4, 5],
+        default=5,
+        help="SSL version [0-5]"
+             "(SSLv3, TLSv1, TLSv1.1, TLSv1.2, TLSv1.3, SSLv23)"
     )
 
     parser.add_argument(
@@ -96,6 +98,7 @@ def get_method(index):
         wolfssl.PROTOCOL_TLSv1,
         wolfssl.PROTOCOL_TLSv1_1,
         wolfssl.PROTOCOL_TLSv1_2,
+        wolfssl.PROTOCOL_TLSv1_3,
         wolfssl.PROTOCOL_SSLv23
     )[index]
 

@@ -366,6 +366,9 @@ cdef = """
     WOLFSSL_METHOD* wolfTLSv1_2_server_method(void);
     WOLFSSL_METHOD* wolfTLSv1_2_client_method(void);
 
+    WOLFSSL_METHOD* wolfTLSv1_3_server_method(void);
+    WOLFSSL_METHOD* wolfTLSv1_3_client_method(void);
+
     WOLFSSL_METHOD* wolfSSLv23_server_method(void);
     WOLFSSL_METHOD* wolfSSLv23_client_method(void);
 
