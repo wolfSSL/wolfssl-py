@@ -155,7 +155,6 @@ def make_flags(prefix, debug):
 
     # tls 1.3
     flags.append("--enable-tls13")
-    flags.append("--enable-sslv3")
 
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")
@@ -212,6 +211,7 @@ def build_wolfssl(ref, debug=False):
 
 
 def make_optional_func_list(libwolfssl_path, funcs):
+    sys.stderr.write("\nlibwolfssl Path: %s\n" % libwolfssl_path)
     if libwolfssl_path.endswith(".so"):
         libwolfssl = cdll.LoadLibrary(libwolfssl_path)
         defined = []
@@ -282,6 +282,13 @@ else:
         generate_libwolfssl()
         get_libwolfssl()
 
+# default values
+OLDTLS_ENABLED = 1
+
+if featureDetection:
+    OLDTLS_ENABLED = 0 if '#define NO_OLD_TLS' in optionsHeaderStr else 1
+
+sys.stderr.write("\nOLDTLS: %d\n" % OLDTLS_ENABLED)
 
 WolfFunction = namedtuple("WolfFunction", ["name", "native_sig", "ossl_sig"])
 # Depending on how wolfSSL was configured, the functions below may or may not be
@@ -302,6 +309,8 @@ optional_funcs = make_optional_func_list(libwolfssl_path, optional_funcs)
 source = """
     #include <wolfssl/options.h>
     #include <wolfssl/ssl.h>
+
+    int OLDTLS_ENABLED = """ + str(OLDTLS_ENABLED) + """;
 """
 ffi_source = source + openssl.source
 
@@ -326,7 +335,9 @@ cdef = """
      */
     typedef unsigned char byte;
     typedef unsigned int word32;
-    
+
+    extern int OLDTLS_ENABLED;
+
     typedef ... WOLFSSL_CTX;
     typedef ... WOLFSSL;
     typedef ... WOLFSSL_X509;
@@ -360,9 +371,16 @@ cdef = """
     /**
      * SSL/TLS Method functions
      */
+"""
+
+if OLDTLS_ENABLED:
+    sys.stderr.write("\nAdding OLDTLS\n")
+    cdef += """
     WOLFSSL_METHOD* wolfTLSv1_1_server_method(void);
     WOLFSSL_METHOD* wolfTLSv1_1_client_method(void);
+    """
 
+cdef += """
     WOLFSSL_METHOD* wolfTLSv1_2_server_method(void);
     WOLFSSL_METHOD* wolfTLSv1_2_client_method(void);
 
@@ -373,7 +391,12 @@ cdef = """
     WOLFSSL_METHOD* wolfSSLv23_client_method(void);
 
     WOLFSSL_METHOD* wolfSSLv23_method(void);
+    """
+if OLDTLS_ENABLED:
+    cdef += """
     WOLFSSL_METHOD* wolfTLSv1_1_method(void);
+    """
+cdef += """
     WOLFSSL_METHOD* wolfTLSv1_2_method(void);
 
     /**
@@ -501,7 +524,7 @@ cdef = """
 for func in optional_funcs:
     cdef += "{};".format(func.native_sig)
 
-ffi_cdef = cdef + openssl.construct_cdef(optional_funcs)
+ffi_cdef = cdef + openssl.construct_cdef(optional_funcs, OLDTLS_ENABLED)
 ffi.cdef(ffi_cdef)
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ import sys
 import ssl
 import pytest
 import wolfssl
-
+from wolfssl._ffi import lib as _lib
 
 @pytest.fixture
 def tcp_socket():
@@ -44,8 +44,14 @@ def ssl_provider(request):
     return request.param
 
 
+tls_params = ["TLSv1.2", "TLSv1.3", "SSLv23"]
+
+if _lib.OLDTLS_ENABLED:
+    tls_params.append("TLSv1.1")
+
+
 @pytest.fixture(
-    params=["TLSv1.1", "TLSv1.2", "TLSv1.3", "SSLv23"])
+    params=tls_params)
 def ssl_context(ssl_provider, request):
     if request.param == "TLSv1.1":
         return ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLSv1_1)
