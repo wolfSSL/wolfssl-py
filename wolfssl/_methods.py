@@ -36,10 +36,12 @@ PROTOCOL_TLSv1 = 3
 PROTOCOL_TLSv1_1 = 4
 PROTOCOL_TLSv1_2 = 5
 PROTOCOL_TLSv1_3 = 6
+PROTOCOL_DTLSv1 = 7
+PROTOCOL_DTLSv1_2 = 8
 
 _PROTOCOL_LIST = [PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLS,
                   PROTOCOL_TLSv1, PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2,
-                  PROTOCOL_TLSv1_3]
+                  PROTOCOL_TLSv1_3, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2]
 
 _DYNAMIC_TYPE_METHOD = 11
 
@@ -85,6 +87,17 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
             self.native_object =                                    \
                 _lib.wolfSSLv23_server_method() if server_side else \
                 _lib.wolfSSLv23_client_method()
+
+        elif protocol == PROTOCOL_DTLSv1:
+            self.native_object =                                    \
+                _lib.wolfDTLSv1_server_method() if server_side else \
+                _lib.wolfDTLSv1_client_method()
+
+        elif protocol == PROTOCOL_DTLSv1_2:
+            self.native_object =                                     \
+                _lib.wolfDTLSv1_2_server_method() if server_side else \
+                _lib.wolfDTLSv1_2_client_method()
+
 
         if self.native_object == _ffi.NULL:
             raise MemoryError("Unnable to allocate method object")

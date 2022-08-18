@@ -51,7 +51,8 @@ from wolfssl.exceptions import (  # noqa: F401
 from wolfssl._methods import (  # noqa: F401
     PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLSv1,
     PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2, PROTOCOL_TLSv1_3,
-    PROTOCOL_TLS, WolfSSLMethod as _WolfSSLMethod
+    PROTOCOL_TLS, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2,
+    WolfSSLMethod as _WolfSSLMethod
 )
 
 CERT_NONE = 0
@@ -63,6 +64,8 @@ _SSL_SUCCESS = 1
 _SSL_FILETYPE_PEM = 1
 _SSL_ERROR_WANT_READ = 2
 _SSL_ERROR_WANT_WRITE = 3
+
+_SOCKADDR_SZ = 16
 
 _PY3 = sys.version_info[0] == 3
 
@@ -519,7 +522,6 @@ class SSLSocket(object):
         """
         Enables CRL certificate revocation
         """
-
         ret = _lib.wolfSSL_EnableCRL(self.native_object, options)
 
         if ret != _SSL_SUCCESS:
@@ -529,7 +531,6 @@ class SSLSocket(object):
         """
         Load CRL certificate revocation
         """
-
         ret = _lib.wolfSSL_LoadCRLFile(self.native_object,
                                        t2b(path) if path else _ffi.NULL,
                                        filetype)
@@ -543,7 +544,12 @@ class SSLSocket(object):
         Returns number of bytes of DATA actually transmitted.
         """
         self._check_closed("write")
-        self._check_connected()
+	# Check connected if not DTLS
+        if self._context.protocol < PROTOCOL_DTLSv1:
+            self._check_connected()
+        # Complete handshake if DTLS connection
+        else:
+            self.do_handshake()
 
         data = t2b(data)
 
@@ -599,7 +605,12 @@ class SSLSocket(object):
         Return zero-length string on EOF.
         """
         self._check_closed("read")
-        self._check_connected()
+        # Check connected if not DTLS
+        if self._context.protocol < PROTOCOL_DTLSv1:
+            self._check_connected()
+        # Complete handshake if DTLS connection
+        else:
+            self.do_handshake()
 
         if buffer is not None:
             raise ValueError("buffer not allowed in calls to "
@@ -630,7 +641,8 @@ class SSLSocket(object):
         to full size of buffer.
         """
         self._check_closed("read")
-        self._check_connected()
+        if self._context.protocol < PROTOCOL_DTLSv1:
+            self._check_connected()
 
         if buffer is None:
             raise ValueError("buffer cannot be None")
@@ -678,7 +690,8 @@ class SSLSocket(object):
         if self.native_object != _ffi.NULL:
             _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
-        self._sock.shutdown(how)
+        if self._context.protocol < PROTOCOL_DTLSv1:
+            self._sock.shutdown(how)
 
     def unwrap(self):
         """
@@ -698,12 +711,23 @@ class SSLSocket(object):
 
         return sock
 
+    def add_peer(self, addr):
+            peerAddr = _lib.wolfSSL_dtls_create_peer(addr[1],t2b(addr[0]))  
+            if peerAddr == _ffi.NULL:
+                raise SSLError("Failed to create peer")
+            ret = _lib.wolfSSL_dtls_set_peer(self.native_object, peerAddr,
+                                             _SOCKADDR_SZ)
+            if ret != _SSL_SUCCESS:
+                raise SSLError("Unable to set dtls peer. E(%d)" % ret)
+            _lib.wolfSSL_dtls_free_peer(peerAddr)  
+
     def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
         Perform a TLS/SSL handshake.
         """
         self._check_closed("do_handshake")
-        self._check_connected()
+        if self._context.protocol < PROTOCOL_DTLSv1:
+            self._check_connected()
 
         if self._server_side:
             ret = _lib.wolfSSL_accept(self.native_object)
@@ -756,13 +780,19 @@ class SSLSocket(object):
         if self._connected:
             raise ValueError("attempt to connect already-connected SSLSocket!")
 
-        if connect_ex:
-            err = self._sock.connect_ex(addr)
+        err = 0
+        ret = _SSL_SUCCESS
+ 
+        if self._context.protocol >= PROTOCOL_DTLSv1:
+            self.add_peer(addr) 
         else:
-            err = 0
-            self._sock.connect(addr)
+            if connect_ex:
+                err = self._sock.connect_ex(addr)
+            else:
+                err = 0
+                self._sock.connect(addr)
 
-        if err == 0:
+        if err == 0 and ret == _SSL_SUCCESS:
             self._connected = True
             if self.do_handshake_on_connect:
                 self.do_handshake()
