@@ -515,6 +515,28 @@ class SSLSocket(object):
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL SNI")
 
+    def enable_crl(self, options):
+        """
+        Enables CRL certificate revocation
+        """
+
+        ret = _lib.wolfSSL_EnableCRL(self.native_object, options)
+
+        if ret != _SSL_SUCCESS:
+            raise SSLError("Unable to enable CRL ")
+
+    def load_crl_file(self, path, filetype):
+        """
+        Load CRL certificate revocation
+        """
+
+        ret = _lib.wolfSSL_LoadCRLFile(self.native_object,
+                                       t2b(path) if path else _ffi.NULL,
+                                       filetype)
+
+        if ret != _SSL_SUCCESS:
+            raise SSLError("Unable to load CRL")
+
     def write(self, data):
         """
         Write DATA to the underlying secure channel.

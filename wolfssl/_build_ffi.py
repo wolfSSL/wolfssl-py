@@ -156,6 +156,9 @@ def make_flags(prefix, debug):
     # tls 1.3
     flags.append("--enable-tls13")
 
+    # crl
+    flags.append("--enable-crl")
+
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")
     flags.append("--enable-opensslextra")
@@ -448,6 +451,8 @@ cdef += """
     int           wolfSSL_set_tlsext_host_name(WOLFSSL*, const char*);
     long          wolfSSL_ctrl(WOLFSSL*, int, long, void*);
     void          wolfSSL_set_connect_state(WOLFSSL*);
+    int           wolfSSL_EnableCRL(WOLFSSL*, int);
+    int           wolfSSL_LoadCRLFile(WOLFSSL*, const char*, int);
 
     /**
      * WOLFSSL_X509 functions
