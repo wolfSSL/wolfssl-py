@@ -156,8 +156,14 @@ def make_flags(prefix, debug):
     # tls 1.3
     flags.append("--enable-tls13")
 
+    # dtls
+    flags.append("--enable-dtls")
+
     # crl
     flags.append("--enable-crl")
+
+    # wrapper allocators
+    cflags.append("-DWOLFSSL_WRAPPER_ALLOCATORS")
 
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")
@@ -202,7 +208,7 @@ def make(configure_flags):
         call("make install")
 
 
-def build_wolfssl(ref, debug=False):
+def build_wolfssl(ref, debug=True):
     prefix = local_path("lib/wolfssl/{}/{}".format(
         get_platform(), ref))
     libfile = os.path.join(prefix, 'lib/libwolfssl.la')
@@ -394,6 +400,12 @@ cdef += """
     WOLFSSL_METHOD* wolfSSLv23_client_method(void);
 
     WOLFSSL_METHOD* wolfSSLv23_method(void);
+
+    WOLFSSL_METHOD* wolfDTLSv1_server_method(void);
+    WOLFSSL_METHOD* wolfDTLSv1_client_method(void);
+
+    WOLFSSL_METHOD* wolfDTLSv1_2_server_method(void);
+    WOLFSSL_METHOD* wolfDTLSv1_2_client_method(void);
     """
 if OLDTLS_ENABLED:
     cdef += """
@@ -453,6 +465,9 @@ cdef += """
     void          wolfSSL_set_connect_state(WOLFSSL*);
     int           wolfSSL_EnableCRL(WOLFSSL*, int);
     int           wolfSSL_LoadCRLFile(WOLFSSL*, const char*, int);
+    void*         wolfSSL_dtls_create_peer(int, char*);
+    int           wolfSSL_dtls_free_peer(void*);
+    int           wolfSSL_dtls_set_peer(WOLFSSL*, void*, unsigned int);
 
     /**
      * WOLFSSL_X509 functions

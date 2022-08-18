@@ -60,6 +60,11 @@ def build_arg_parser():
     )
 
     parser.add_argument(
+        "-u", action="store_true",
+        help="Use UDP DTLS, add -v 0 for DTLSv1, -v 1 for DTLSv1.2 (default)"
+    )
+
+    parser.add_argument(
         "-l", metavar="ciphers", type=str, default="",
         help="Cipher suite list (: delimited)"
     )
@@ -103,7 +108,7 @@ def build_arg_parser():
     return parser
 
 
-def get_method(index):
+def get_SSLmethod(index):
     return (
         wolfssl.PROTOCOL_SSLv3,
         wolfssl.PROTOCOL_TLSv1,
@@ -113,16 +118,26 @@ def get_method(index):
         wolfssl.PROTOCOL_SSLv23
     )[index]
 
+def get_DTLSmethod(index):
+    return (
+        wolfssl.PROTOCOL_DTLSv1,
+        wolfssl.PROTOCOL_DTLSv1_2
+    )[index]
 
 def main():
     args = build_arg_parser().parse_args()
 
-    bind_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    # DTLS connection  over UDP
+    if args.u:
+        bind_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+        context = wolfssl.SSLContext(get_DTLSmethod(args.v))
+    # SSL/TLS connection over TCP
+    else:
+        bind_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        context = wolfssl.SSLContext(get_SSLmethod(args.v))
 
     # enable debug, if native wolfSSL has been compiled with '--enable-debug'
     wolfssl.WolfSSL.enable_debug()
-
-    context = wolfssl.SSLContext(get_method(args.v))
 
     context.load_cert_chain(args.c, args.k)
 
