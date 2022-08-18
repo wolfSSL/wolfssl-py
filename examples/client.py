@@ -89,6 +89,17 @@ def build_arg_parser():
         help="Send server HTTP GET"
     )
 
+    parser.add_argument(
+        "-C", action="store_true",
+        help="Disable CRL"
+    )
+
+    parser.add_argument(
+        "-r", metavar="crl_file", default="./certs/crl.pem",
+        help="CRL file,                   default ./certs/crl.pem"
+    )
+
+
     return parser
 
 
@@ -126,7 +137,11 @@ def main():
 
     try:
         secure_socket = context.wrap_socket(bind_socket)
-
+        
+        if not args.C:
+            secure_socket.enable_crl(1)
+            secure_socket.load_crl_file(args.r, 1);
+        
         secure_socket.connect((args.h, args.p))
 
         if args.g:
