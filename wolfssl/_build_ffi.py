@@ -162,9 +162,6 @@ def make_flags(prefix, debug):
     # crl
     flags.append("--enable-crl")
 
-    # wrapper allocators
-    cflags.append("-DWOLFSSL_WRAPPER_ALLOCATORS")
-
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")
     flags.append("--enable-opensslextra")
