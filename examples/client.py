@@ -121,7 +121,8 @@ def get_SSLmethod(index):
 def get_DTLSmethod(index):
     return (
         wolfssl.PROTOCOL_DTLSv1,
-        wolfssl.PROTOCOL_DTLSv1_2
+        wolfssl.PROTOCOL_DTLSv1_2,
+        wolfssl.PROTOCOL_DTLSv1_3
     )[index]
 
 def main():
