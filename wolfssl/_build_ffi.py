@@ -153,14 +153,17 @@ def make_flags(prefix, debug):
     flags.append("--disable-shared")
     flags.append("--disable-examples")
 
-    # tls 1.3
-    flags.append("--enable-tls13")
+    # dtls 1.3
+    flags.append("--enable-dtls13")
 
     # dtls
     flags.append("--enable-dtls")
 
     # crl
     flags.append("--enable-crl")
+
+    # openssl extra
+    flags.append("--enable-opensslextra")
 
     # for urllib3 - requires SNI (tlsx), options (openssl compat), peer cert
     flags.append("--enable-tlsx")
@@ -205,7 +208,7 @@ def make(configure_flags):
         call("make install")
 
 
-def build_wolfssl(ref, debug=True):
+def build_wolfssl(ref, debug=False):
     prefix = local_path("lib/wolfssl/{}/{}".format(
         get_platform(), ref))
     libfile = os.path.join(prefix, 'lib/libwolfssl.la')
@@ -384,6 +387,9 @@ if OLDTLS_ENABLED:
     cdef += """
     WOLFSSL_METHOD* wolfTLSv1_1_server_method(void);
     WOLFSSL_METHOD* wolfTLSv1_1_client_method(void);
+
+    WOLFSSL_METHOD* wolfDTLSv1_server_method(void);
+    WOLFSSL_METHOD* wolfDTLSv1_client_method(void);
     """
 
 cdef += """
@@ -398,11 +404,11 @@ cdef += """
 
     WOLFSSL_METHOD* wolfSSLv23_method(void);
 
-    WOLFSSL_METHOD* wolfDTLSv1_server_method(void);
-    WOLFSSL_METHOD* wolfDTLSv1_client_method(void);
-
     WOLFSSL_METHOD* wolfDTLSv1_2_server_method(void);
     WOLFSSL_METHOD* wolfDTLSv1_2_client_method(void);
+
+    WOLFSSL_METHOD* wolfDTLSv1_3_server_method(void);
+    WOLFSSL_METHOD* wolfDTLSv1_3_client_method(void);
     """
 if OLDTLS_ENABLED:
     cdef += """

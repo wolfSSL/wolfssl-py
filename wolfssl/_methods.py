@@ -38,10 +38,12 @@ PROTOCOL_TLSv1_2 = 5
 PROTOCOL_TLSv1_3 = 6
 PROTOCOL_DTLSv1 = 7
 PROTOCOL_DTLSv1_2 = 8
+PROTOCOL_DTLSv1_3 = 9
 
 _PROTOCOL_LIST = [PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLS,
                   PROTOCOL_TLSv1, PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2,
-                  PROTOCOL_TLSv1_3, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2]
+                  PROTOCOL_TLSv1_3, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2,
+                  PROTOCOL_DTLSv1_3]
 
 _DYNAMIC_TYPE_METHOD = 11
 
@@ -89,6 +91,8 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
                 _lib.wolfSSLv23_client_method()
 
         elif protocol == PROTOCOL_DTLSv1:
+            if not _lib.OLDTLS_ENABLED:
+                raise ValueError("wolfSSL not built with old TLS support")
             self.native_object =                                    \
                 _lib.wolfDTLSv1_server_method() if server_side else \
                 _lib.wolfDTLSv1_client_method()
@@ -98,6 +102,10 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
                 _lib.wolfDTLSv1_2_server_method() if server_side else \
                 _lib.wolfDTLSv1_2_client_method()
 
+        elif protocol == PROTOCOL_DTLSv1_3:
+            self.native_object =                                     \
+                _lib.wolfDTLSv1_3_server_method() if server_side else \
+                _lib.wolfDTLSv1_3_client_method()
 
         if self.native_object == _ffi.NULL:
             raise MemoryError("Unnable to allocate method object")

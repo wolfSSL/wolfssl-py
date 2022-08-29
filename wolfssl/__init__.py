@@ -52,7 +52,7 @@ from wolfssl._methods import (  # noqa: F401
     PROTOCOL_SSLv23, PROTOCOL_SSLv3, PROTOCOL_TLSv1,
     PROTOCOL_TLSv1_1, PROTOCOL_TLSv1_2, PROTOCOL_TLSv1_3,
     PROTOCOL_TLS, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2,
-    WolfSSLMethod as _WolfSSLMethod
+    PROTOCOL_DTLSv1_3, WolfSSLMethod as _WolfSSLMethod
 )
 
 CERT_NONE = 0
