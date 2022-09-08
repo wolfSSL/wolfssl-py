@@ -334,12 +334,12 @@ ffi.set_source(
 )
 
 cdef = """
-    /**
+    /*
      * Constants
      */
     static const long SOCKET_PEER_CLOSED_E;
 
-    /**
+    /*
      * Types
      */
     typedef unsigned char byte;
@@ -347,6 +347,9 @@ cdef = """
 
     extern int OLDTLS_ENABLED;
 
+    /*
+     * Opaque structs.
+     */
     typedef ... WOLFSSL_CTX;
     typedef ... WOLFSSL;
     typedef ... WOLFSSL_X509;
@@ -354,30 +357,41 @@ cdef = """
     typedef ... WOLFSSL_X509_STORE_CTX;
     typedef ... WOLFSSL_X509_NAME;
     typedef ... WOLFSSL_X509_NAME_ENTRY;
-    typedef ... WOLFSSL_ALERT_HISTORY;
     typedef ... WOLFSSL_METHOD;
     typedef ... WOLFSSL_ASN1_TIME;
     typedef ... WOLFSSL_ASN1_GENERALIZEDTIME;
     typedef ... WOLFSSL_ASN1_STRING;
     typedef ... WOLFSSL_ASN1_OBJECT;
 
+    /*
+     * Non-opaque structs, where we need access to fields.
+     */
+    typedef struct WOLFSSL_ALERT {
+        int code;
+        int level;
+    } WOLFSSL_ALERT;
+    typedef struct WOLFSSL_ALERT_HISTORY {
+        WOLFSSL_ALERT last_rx;
+        WOLFSSL_ALERT last_tx;
+    } WOLFSSL_ALERT_HISTORY;
+
     typedef int (*VerifyCallback)(int, WOLFSSL_X509_STORE_CTX*);
     typedef int pem_password_cb(char*, int, int, void*);
     typedef int (*CallbackSniRecv)(WOLFSSL*, int*, void*);
 
-    /**
+    /*
      * Memory
      */
     void  wolfSSL_Free(void*);
     void  wolfSSL_OPENSSL_free(void*);
 
-    /**
+    /*
      * Debugging
      */
     void wolfSSL_Debugging_ON();
     void wolfSSL_Debugging_OFF();
 
-    /**
+    /*
      * SSL/TLS Method functions
      */
 """
@@ -417,7 +431,7 @@ if OLDTLS_ENABLED:
 cdef += """
     WOLFSSL_METHOD* wolfTLSv1_2_method(void);
 
-    /**
+    /*
      * SSL/TLS Context functions
      */
     WOLFSSL_CTX* wolfSSL_CTX_new(WOLFSSL_METHOD*);
@@ -440,7 +454,7 @@ cdef += """
             CallbackSniRecv);
     long wolfSSL_CTX_set_mode(WOLFSSL_CTX*, long);
 
-    /**
+    /*
      * SSL/TLS Session functions
      */
     void wolfSSL_Init();
@@ -472,7 +486,7 @@ cdef += """
     int           wolfSSL_dtls_free_peer(void*);
     int           wolfSSL_dtls_set_peer(WOLFSSL*, void*, unsigned int);
 
-    /**
+    /*
      * WOLFSSL_X509 functions
      */
     char*                    wolfSSL_X509_get_subjectCN(void*);
@@ -515,7 +529,7 @@ cdef += """
                                  WOLFSSL_X509_EXTENSION*);
     WOLFSSL_X509*            wolfSSL_X509_dup(WOLFSSL_X509*);
 
-    /**
+    /*
      * ASN.1
      */
     int                wolfSSL_ASN1_STRING_length(WOLFSSL_ASN1_STRING*);
@@ -531,7 +545,7 @@ cdef += """
     int                wolfSSL_ASN1_STRING_to_UTF8(unsigned char **, 
                            WOLFSSL_ASN1_STRING*);
 
-    /**
+    /*
      * Misc.
      */
     int           wolfSSL_library_init(void);
