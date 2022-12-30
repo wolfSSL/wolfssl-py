@@ -1,16 +1,16 @@
-Current Development
-===================
+wolfSSL-py Release 5.5.4 (December 30, 2022)
+============================================
+* Update wolfSSL to version 5.5.4
 
-New Features
-------------
+wolfSSL-py Release 5.5.3 (November 7, 2022)
+===========================================
+* Fix TLSv1.3 support
+* Disable oldtls support
+* Add changelog
+* Adding support for CRL and DTLS
+* Fix alert history code
+* Update wolfSSL to version 5.5.3
 
-* wolfSSL builds with ``--disable-oldtls`` now supported
-
-Fixes
------
-
-* TLS 1.3 support now works correctly and is tested
-* Example server was not cleanly closing sockets
 
 wolfSSL-py Release 5.4.0 (July 13, 2022)
 ========================================
