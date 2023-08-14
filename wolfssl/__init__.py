@@ -657,7 +657,7 @@ class SSLSocket(object):
 
         data = _ffi.from_buffer(buffer)
         length = _lib.wolfSSL_read(self.native_object, data, nbytes)
-
+        _ffi.release(data)
         if length < 0:
             err = _lib.wolfSSL_get_error(self.native_object, 0)
             if err == _SSL_ERROR_WANT_READ:
