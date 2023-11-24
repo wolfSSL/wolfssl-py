@@ -108,7 +108,7 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
                 _lib.wolfDTLSv1_3_client_method()
 
         if self.native_object == _ffi.NULL:
-            raise MemoryError("Unnable to allocate method object")
+            raise MemoryError("Unable to allocate method object")
 
     def __del__(self):
         if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
