@@ -910,7 +910,7 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
     The keyfile and certfile parameters specify optional files with proper
     key and the certificates used to identify the local side of the connection.
 
-    The parameter server_side is a boolean which identifies whether server-side
+    The parameter server_side is a Boolean which identifies whether server-side
     or client-side behavior is desired from this socket.
 
     The parameter cert_reqs specifies whether a certificate is required from
@@ -932,7 +932,7 @@ def wrap_socket(sock, keyfile=None, certfile=None, server_side=False,
     The parameter ssl_version specifies which version of the SSL protocol to
     use. Typically, the server chooses a particular protocol version, and the
     client must adapt to the server’s choice. Most of the versions are not
-    interoperable with the other versions. If not specified, the default is
+    inter-operable with the other versions. If not specified, the default is
     PROTOCOL_TLS; it provides the most compatibility with other versions.
 
     Here’s a table showing which versions in a client (down the side) can
