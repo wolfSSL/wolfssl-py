@@ -21,10 +21,7 @@
 
 # pylint: disable=wrong-import-position
 
-import os
-import sys
 from setuptools import setup
-from setuptools.command.build_ext import build_ext
 
 import re
 VERSIONFILE = "wolfssl/_version.py"

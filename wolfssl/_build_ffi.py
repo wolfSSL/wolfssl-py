@@ -22,7 +22,6 @@
 
 # pylint: disable=missing-docstring, invalid-name
 
-import argparse
 from contextlib import contextmanager
 from distutils.util import get_platform
 from cffi import FFI
@@ -105,7 +104,7 @@ def checkout_ref(ref):
             current = subprocess.check_output(
                 ["git", "describe", "--all", "--exact-match"]
             ).strip().decode().split('/')[-1]
-        except:
+        except Exception:
             pass
 
         if current != ref:

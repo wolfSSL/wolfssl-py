@@ -156,7 +156,7 @@ def main():
         
         if not args.C:
             secure_socket.enable_crl(1)
-            secure_socket.load_crl_file(args.r, 1);
+            secure_socket.load_crl_file(args.r, 1)
         
         secure_socket.connect((args.h, args.p))
 

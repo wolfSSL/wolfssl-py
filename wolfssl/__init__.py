@@ -28,7 +28,7 @@ import sys
 from functools import wraps
 import errno
 from socket import (
-    socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_TYPE, error as socket_error
+    socket, AF_INET, SOCK_STREAM, error as socket_error
 )
 
 # pylint: disable=wildcard-import
@@ -487,7 +487,7 @@ class SSLSocket(object):
         """
         Returns True for server-side socket, otherwise False.
         """
-        return self._server_side;
+        return self._server_side
 
     def dup(self):
         raise NotImplementedError("Can't dup() %s instances" %
@@ -998,5 +998,5 @@ class WolfsslPwd_cb(object):
             for i in range(len(result)):
                 passwd[i] = result[i:i + 1]
             return len(result)
-        except Exception as e:
+        except Exception:
             raise ValueError("Problem getting password from callback")
