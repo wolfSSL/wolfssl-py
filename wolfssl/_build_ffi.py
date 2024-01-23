@@ -292,7 +292,7 @@ else:
         get_libwolfssl()
 
 # default values
-OLDTLS_ENABLED = 1
+OLDTLS_ENABLED = 0
 
 if featureDetection:
     OLDTLS_ENABLED = 0 if '#define NO_OLD_TLS' in optionsHeaderStr else 1
