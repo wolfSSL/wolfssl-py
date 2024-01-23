@@ -1,3 +1,10 @@
+wolfSSL-py Release 5.6.6 (Jan 23, 2024)
+============================================
+* Fix segfault issue with TLS v1.3
+* Update expired example certs
+* Update wolfSSL to version 5.6.6
+
+
 wolfSSL-py Release 5.6.0 (May 2, 2022)
 ============================================
 * Update wolfSSL to version 5.6.0
