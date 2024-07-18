@@ -857,6 +857,11 @@ class SSLSocket(object):
 
         return {'subject': ((('commonName', x509.get_subject_cn()),),),
                 'subjectAltName': x509.get_altnames() }
+    def version(self):
+        """
+        Returns the version of the protocol used in the connection.
+        """
+        return _ffi.string(_lib.wolfSSL_get_version(self.native_object)).decode("ascii")
 
     # The following functions expose functionality of the underlying
     # Socket object. These are also exposed through Python's ssl module

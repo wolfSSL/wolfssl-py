@@ -485,6 +485,7 @@ cdef += """
     void*         wolfSSL_dtls_create_peer(int, char*);
     int           wolfSSL_dtls_free_peer(void*);
     int           wolfSSL_dtls_set_peer(WOLFSSL*, void*, unsigned int);
+    const char*   wolfSSL_get_version(const WOLFSSL*);
 
     /*
      * WOLFSSL_X509 functions
