@@ -24,6 +24,7 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
+import wolfssl
 
 HOST = "www.python.org"
 PORT = 443
@@ -70,3 +71,21 @@ def test_secure_connection(secure_socket):
 
     secure_socket.write(b"GET / HTTP/1.1\n\n")
     assert secure_socket.read(4) == b"HTTP"
+
+@pytest.mark.parametrize("ssl_version",
+                         [pytest.param((wolfssl.PROTOCOL_TLSv1_1, "TLSv1.1"), id="TLSv1.1"),
+                          pytest.param((wolfssl.PROTOCOL_TLSv1_2, "TLSv1.2"), id="TLSv1.2"),
+                          pytest.param((wolfssl.PROTOCOL_TLSv1_3, "TLSv1.3"), id="TLSv1.3")])
+def test_get_version(ssl_server, ssl_version, tcp_socket):
+    protocol = ssl_version[0]
+    protocol_name = ssl_version[1]
+    try:
+        ssl_context = wolfssl.SSLContext(protocol)
+    except ValueError:
+        pytest.skip("Protocol {} not supported".format(protocol_name))
+        return
+    secure_socket = ssl_context.wrap_socket(tcp_socket)
+    secure_socket.connect(('127.0.0.1', ssl_server.port))
+    assert secure_socket.version() == protocol_name
+    secure_socket.write(b'hello wolfssl')
+    secure_socket.read(1024)

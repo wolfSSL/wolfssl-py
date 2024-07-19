@@ -27,6 +27,7 @@ import ssl
 import pytest
 import wolfssl
 from wolfssl._ffi import lib as _lib
+from wolfssltestserver import wolfSSLTestServer
 
 @pytest.fixture
 def tcp_socket():
@@ -61,3 +62,15 @@ def ssl_context(ssl_provider, request):
         return ssl_provider.SSLContext(ssl_provider.PROTOCOL_TLSv1_3)
     if request.param == "SSLv23":
         return ssl_provider.SSLContext(ssl_provider.PROTOCOL_SSLv23)
+
+port = 1110
+@pytest.fixture
+def ssl_server():
+    from threading import Thread
+    global port
+    port += 1
+    with wolfSSLTestServer(('localhost', port)) as server:
+        t = Thread(target=server.handle_request)
+        t.daemon = True
+        t.start()
+        yield server
