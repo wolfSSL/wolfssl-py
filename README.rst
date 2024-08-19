@@ -66,6 +66,16 @@ wolfSSL library.  For example:
     # Uses custom install location
     $ USE_LOCAL_WOLFSSL=/tmp/install pip install .
 
+Disabling secure renegotiation
+------------------------------
+
+When building wolfssl-py from source secure renegotiation is enabled by
+default. To disable secure renegotiation set the environment variable
+WOLFSSLPY_DISABLE_SCR during the build process. For example:
+
+.. code-block:: bash
+    $ WOLFSSLPY_DISABLE_SCR=1 pip install .
+
 Testing
 =======
 

@@ -21,6 +21,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 
 # pylint: disable=missing-docstring, invalid-name
+import os
 
 source = """
     #include <wolfssl/options.h>
@@ -248,7 +249,6 @@ def construct_cdef(optional_funcs, OLDTLS_ENABLED):
         X509*         SSL_get_peer_certificate(SSL*);
         const char*   SSL_alert_type_string_long(int);
         const char*   SSL_alert_desc_string_long(int);
-        int           SSL_renegotiate(SSL*);
         void          SSL_get0_next_proto_negotiated(const SSL*,
                           const unsigned char**, unsigned*);
         const char*   SSL_get_servername(SSL*, unsigned char);
@@ -305,6 +305,13 @@ def construct_cdef(optional_funcs, OLDTLS_ENABLED):
         const char*   OBJ_nid2sn(int n);
         int           OBJ_txt2nid(const char*);
     """
+
+    # defaults to None (that eval to False)
+    disable_scr = os.getenv("WOLFSSLPY_DISABLE_SCR")
+    if not disable_scr:
+        cdef += """
+        int           SSL_renegotiate(SSL*);
+        """
 
     for func in optional_funcs:
         cdef += "{};".format(func.ossl_sig)

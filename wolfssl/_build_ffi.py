@@ -142,6 +142,8 @@ def make_flags(prefix, debug):
     """
     flags = []
     cflags = []
+    # defaults to None (that eval to False)
+    disable_scr = os.getenv("WOLFSSLPY_DISABLE_SCR")
 
     if get_platform() in ["linux-x86_64", "linux-i686"]:
         cflags.append("-fpic")
@@ -171,7 +173,8 @@ def make_flags(prefix, debug):
     cflags.append("-DKEEP_PEER_CERT")
 
     # for pyOpenSSL
-    flags.append("--enable-secure-renegotiation")
+    if not disable_scr:
+        flags.append("--enable-secure-renegotiation")
     flags.append("--enable-opensslall")
     cflags.append("-DFP_MAX_BITS=8192")
     cflags.append("-DHAVE_EX_DATA")
