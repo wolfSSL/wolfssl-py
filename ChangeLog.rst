@@ -1,3 +1,9 @@
+wolfSSL-py Release 5.7.2 (Sep 6, 2024)
+============================================
+* SSLSocket: support version() version
+* support disabling secure renegotiation
+* Update wolfSSL to version 5.7.2
+
 wolfSSL-py Release 5.6.6 (Jan 23, 2024)
 ============================================
 * Fix segfault issue with TLS v1.3

@@ -74,6 +74,7 @@ default. To disable secure renegotiation set the environment variable
 WOLFSSLPY_DISABLE_SCR during the build process. For example:
 
 .. code-block:: bash
+
     $ WOLFSSLPY_DISABLE_SCR=1 pip install .
 
 Testing
