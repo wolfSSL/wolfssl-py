@@ -1,3 +1,7 @@
+wolfSSL-py Release 5.7.4 (Nov 13, 2024)
+============================================
+* Update wolfSSL to version 5.7.4
+
 wolfSSL-py Release 5.7.2 (Sep 6, 2024)
 ============================================
 * SSLSocket: support version() version
