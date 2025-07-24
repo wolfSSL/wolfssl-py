@@ -1,3 +1,7 @@
+wolfSSL-py Release 5.8.2 (Jul 24, 2025)
+============================================
+* Update wolfSSL to version 5.8.2
+
 wolfSSL-py Release 5.7.4 (Nov 13, 2024)
 ============================================
 * Update wolfSSL to version 5.7.4
