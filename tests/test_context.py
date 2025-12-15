@@ -39,6 +39,9 @@ def test_verify_mode(ssl_provider, ssl_context):
 
     assert ssl_context.verify_mode == ssl_provider.CERT_NONE
 
+    ssl_context.verify_mode = ssl_provider.CERT_OPTIONAL
+    assert ssl_context.verify_mode == ssl_provider.CERT_OPTIONAL
+
     ssl_context.verify_mode = ssl_provider.CERT_REQUIRED
     assert ssl_context.verify_mode == ssl_provider.CERT_REQUIRED
 
