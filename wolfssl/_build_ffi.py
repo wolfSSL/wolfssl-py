@@ -35,9 +35,6 @@ import sys
 from ctypes import cdll
 from collections import namedtuple
 
-libwolfssl_path = ""
-
-
 def local_path(path):
     """ Return path relative to the root of this project
     """
@@ -223,8 +220,13 @@ def build_wolfssl(ref, debug=False):
 
 
 def make_optional_func_list(libwolfssl_path, funcs):
+    defined = []
     sys.stderr.write("\nlibwolfssl Path: %s\n" % libwolfssl_path)
-    if libwolfssl_path.endswith(".so"):
+    if not libwolfssl_path or not os.path.exists(libwolfssl_path):
+        sys.stderr.write("WARNING: libwolfssl not found, skipping optional "
+                         "function detection\n")
+        return []
+    if libwolfssl_path.endswith(".so") or libwolfssl_path.endswith(".dylib"):
         libwolfssl = cdll.LoadLibrary(libwolfssl_path)
         defined = []
         for func in funcs:
@@ -244,16 +246,13 @@ def make_optional_func_list(libwolfssl_path, funcs):
     return defined
 
 
-def get_libwolfssl():
-    libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.a")
-    if not os.path.exists(libwolfssl_path):
-        libwolfssl_path = os.path.join(wolfssl_lib_path(), "libwolfssl.so")
-        if not os.path.exists(libwolfssl_path):
-            return 0
-        else:
-            return 1
-    else:
-        return 1
+def get_libwolfssl_path():
+    lib_dir = wolfssl_lib_path()
+    for ext in (".so", ".dylib", ".a"):
+        path = os.path.join(lib_dir, "libwolfssl" + ext)
+        if os.path.exists(path):
+            return path
+    return None
 
 
 def generate_libwolfssl():
@@ -282,6 +281,7 @@ if local_wolfssl:
         raise RuntimeError("wolfSSL needs to be compiled with "
             "--enable-opensslextra")
     featureDetection = 1
+    libwolfssl_path = get_libwolfssl_path()
     sys.stderr.write("\nDEBUG: Found <wolfssl/options.h>, attempting native "
                      "feature detection\n")
 
@@ -290,9 +290,10 @@ else:
     featureDetection = 0
     sys.stderr.write("\nDEBUG: Skipping native feature detection, build not "
                      "using USE_LOCAL_WOLFSSL\n")
-    if get_libwolfssl() == 0:
+    libwolfssl_path = get_libwolfssl_path()
+    if libwolfssl_path is None:
         generate_libwolfssl()
-        get_libwolfssl()
+        libwolfssl_path = get_libwolfssl_path()
 
 # default values
 OLDTLS_ENABLED = 0
@@ -328,13 +329,23 @@ ffi_source = source + openssl.source
 
 ffi = FFI()
 
-ffi.set_source(
-    "wolfssl._ffi",
-    ffi_source,
-    include_dirs=[wolfssl_inc_path()],
-    library_dirs=[wolfssl_lib_path()],
-    libraries=["wolfssl"],
-)
+if libwolfssl_path and libwolfssl_path.endswith(".a"):
+    # Static linking: pass the .a file directly via extra_objects
+    ffi.set_source(
+        "wolfssl._ffi",
+        ffi_source,
+        include_dirs=[wolfssl_inc_path()],
+        extra_objects=[libwolfssl_path],
+    )
+else:
+    # Dynamic linking: use library_dirs + libraries
+    ffi.set_source(
+        "wolfssl._ffi",
+        ffi_source,
+        include_dirs=[wolfssl_inc_path()],
+        library_dirs=[wolfssl_lib_path()],
+        libraries=["wolfssl"],
+    )
 
 cdef = """
     /*
