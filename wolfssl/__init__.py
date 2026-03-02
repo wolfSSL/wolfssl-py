@@ -38,8 +38,10 @@ from wolfssl.__about__ import *  # noqa: F401, F403
 try:
     from wolfssl._ffi import ffi as _ffi
     from wolfssl._ffi import lib as _lib
-except ImportError:
-    pass
+except ImportError as e:
+    from wolfssl.utils import _FFIPlaceholder
+    _ffi = _FFIPlaceholder(e)
+    _lib = _FFIPlaceholder(e)
 
 from wolfssl.utils import t2b
 
@@ -169,7 +171,7 @@ class SSLContext(object):
         self.verify_mode = CERT_NONE
 
     def __del__(self):
-        if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
+        if getattr(self, 'native_object', None) is not None and self.native_object != _ffi.NULL:
             _lib.wolfSSL_CTX_free(self.native_object)
 
     @property
@@ -474,7 +476,7 @@ class SSLSocket(object):
         self._release_native_object()
 
     def _release_native_object(self):
-        if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
+        if getattr(self, 'native_object', None) is not None and self.native_object != _ffi.NULL:
             _lib.wolfSSL_free(self.native_object)
             self.native_object = _ffi.NULL
 
