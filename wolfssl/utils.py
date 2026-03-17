@@ -30,6 +30,19 @@ _TEXT_TYPE = str if _PY3 else unicode  # noqa: F821
 _BINARY_TYPE = bytes if _PY3 else str
 
 
+class _FFIPlaceholder:
+    def __init__(self, cause=None):
+        object.__setattr__(self, '_cause', cause)
+
+    def __getattr__(self, name):
+        raise ImportError(
+            "wolfssl._ffi is not available. The CFFI bindings have not been "
+            "compiled. If you installed wolfssl via pip, the build may have "
+            "failed silently. Try reinstalling with: "
+            "pip install --no-binary wolfssl wolfssl"
+        ) from self._cause
+
+
 def t2b(string):
     """
     Converts text to binary.

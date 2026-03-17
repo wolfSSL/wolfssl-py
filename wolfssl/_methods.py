@@ -25,8 +25,10 @@
 try:
     from wolfssl._ffi import lib as _lib
     from wolfssl._ffi import ffi as _ffi
-except ImportError:
-    pass
+except ImportError as e:
+    from wolfssl.utils import _FFIPlaceholder
+    _ffi = _FFIPlaceholder(e)
+    _lib = _FFIPlaceholder(e)
 
 
 PROTOCOL_SSLv23 = 1
@@ -111,5 +113,5 @@ class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
             raise MemoryError("Cannot allocate method object")
 
     def __del__(self):
-        if getattr(self, 'native_object', _ffi.NULL) != _ffi.NULL:
+        if getattr(self, 'native_object', None) is not None and self.native_object != _ffi.NULL:
             _native_free(self.native_object, _DYNAMIC_TYPE_METHOD)
