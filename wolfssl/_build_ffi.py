@@ -69,11 +69,14 @@ def wolfssl_lib_path():
 
 
 def call(cmd):
-    print("Calling: '{}' from working directory {}".format(cmd, os.getcwd()))
+    print("Calling: '{}' from working directory {}".format(
+        cmd, os.getcwd()))
 
     old_env = os.environ["PATH"]
-    os.environ["PATH"] = "{}:{}".format(WOLFSSL_SRC_PATH, old_env)
-    subprocess.check_call(cmd, shell=True, env=os.environ)
+    os.environ["PATH"] = "{}:{}".format(
+        WOLFSSL_SRC_PATH, old_env)
+    subprocess.check_call(
+        shlex.split(cmd), env=os.environ)
     os.environ["PATH"] = old_env
 
 
