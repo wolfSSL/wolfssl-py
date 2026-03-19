@@ -100,6 +100,12 @@ class WolfSSLX509(object):
         if self.native_object == _ffi.NULL:
             raise SSLError("Unable to get internal WOLFSSL_X509 from wolfSSL")
 
+    def __del__(self):
+        if getattr(self, 'native_object', None) is not None \
+                and self.native_object != _ffi.NULL:
+            _lib.wolfSSL_X509_free(self.native_object)
+            self.native_object = _ffi.NULL
+
     def get_subject_cn(self):
         cnPtr = _lib.wolfSSL_X509_get_subjectCN(self.native_object)
         if cnPtr == _ffi.NULL:
@@ -173,6 +179,7 @@ class SSLContext(object):
     def __del__(self):
         if getattr(self, 'native_object', None) is not None and self.native_object != _ffi.NULL:
             _lib.wolfSSL_CTX_free(self.native_object)
+            self.native_object = _ffi.NULL
 
     @property
     def verify_mode(self):
@@ -208,8 +215,11 @@ class SSLContext(object):
     @check_hostname.setter
     def check_hostname(self, value):
         if value is not True and value is not False:
-            raise ValueError("check_hostname must be either True or False")
-
+            raise ValueError("check_hostname must be either "
+                             "True or False")
+        if value and self._verify_mode != CERT_REQUIRED:
+            raise ValueError("check_hostname needs verify_mode "
+                             "set to CERT_REQUIRED")
         self._check_hostname = value
 
     def get_options(self):
@@ -245,6 +255,9 @@ class SSLContext(object):
                                  "between init and wrap_socket()")
 
         if self._server_side is None:
+            if server_side:
+                raise ValueError("SSLContext server_side value not consistent "
+                                 "between init and wrap_socket()")
             self._server_side = server_side
 
         if server_side is None and self._server_side is not None:
@@ -460,8 +473,11 @@ class SSLSocket(object):
             if self._context.check_hostname:
 
                 sni = _ffi.new("char[]", server_hostname.encode("utf-8"))
-                _lib.wolfSSL_check_domain_name(self.native_object,
-                                               sni)
+                ret = _lib.wolfSSL_check_domain_name(self.native_object,
+                                                     sni)
+                if ret != _SSL_SUCCESS:
+                    raise SSLError("Unable to set domain name check for "
+                                   "hostname verification")
 
         if connected:
             try:
@@ -560,7 +576,17 @@ class SSLSocket(object):
 
         data = t2b(data)
 
-        return _lib.wolfSSL_write(self.native_object, data, len(data))
+        ret = _lib.wolfSSL_write(
+            self.native_object, data, len(data))
+        if ret <= 0:
+            err = _lib.wolfSSL_get_error(
+                self.native_object, 0)
+            if err == _SSL_ERROR_WANT_WRITE:
+                raise SSLWantWriteError()
+            else:
+                raise SSLError(
+                    "wolfSSL_write error (%d)" % err)
+        return ret
 
     def send(self, data, flags=0):
         if flags != 0:
@@ -765,7 +791,7 @@ class SSLSocket(object):
                 if alertRet == _SSL_SUCCESS:
                     alertHistory = alertHistoryPtr[0]
                     code = alertHistory.last_rx.code
-                    alertDesc = _lib.wolfSSL_alert_type_string_long(code)
+                    alertDesc = _lib.wolfSSL_alert_desc_string_long(code)
                     if alertDesc != _ffi.NULL:
                         alertStr = _ffi.string(alertDesc).decode("ascii")
                     else:
@@ -844,7 +870,7 @@ class SSLSocket(object):
         after making a successful SSL/TLS connection.
         """
         if self.native_object == _ffi.NULL:
-            return _ffi.NULL
+            return None
 
         return WolfSSLX509(self.native_object)
 
@@ -857,7 +883,7 @@ class SSLSocket(object):
         x509 = self.get_peer_x509()
 
         if not x509:
-            return x509
+            return None
 
         if binary_form:
             return x509.get_der()
