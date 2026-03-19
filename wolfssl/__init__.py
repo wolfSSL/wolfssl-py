@@ -215,8 +215,11 @@ class SSLContext(object):
     @check_hostname.setter
     def check_hostname(self, value):
         if value is not True and value is not False:
-            raise ValueError("check_hostname must be either True or False")
-
+            raise ValueError("check_hostname must be either "
+                             "True or False")
+        if value and self._verify_mode != CERT_REQUIRED:
+            raise ValueError("check_hostname needs verify_mode "
+                             "set to CERT_REQUIRED")
         self._check_hostname = value
 
     def get_options(self):
