@@ -850,7 +850,7 @@ class SSLSocket(object):
         after making a successful SSL/TLS connection.
         """
         if self.native_object == _ffi.NULL:
-            return _ffi.NULL
+            return None
 
         return WolfSSLX509(self.native_object)
 
@@ -863,7 +863,7 @@ class SSLSocket(object):
         x509 = self.get_peer_x509()
 
         if not x509:
-            return x509
+            return None
 
         if binary_form:
             return x509.get_der()
