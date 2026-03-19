@@ -179,6 +179,7 @@ class SSLContext(object):
     def __del__(self):
         if getattr(self, 'native_object', None) is not None and self.native_object != _ffi.NULL:
             _lib.wolfSSL_CTX_free(self.native_object)
+            self.native_object = _ffi.NULL
 
     @property
     def verify_mode(self):
