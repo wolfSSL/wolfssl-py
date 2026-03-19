@@ -463,8 +463,11 @@ class SSLSocket(object):
             if self._context.check_hostname:
 
                 sni = _ffi.new("char[]", server_hostname.encode("utf-8"))
-                _lib.wolfSSL_check_domain_name(self.native_object,
-                                               sni)
+                ret = _lib.wolfSSL_check_domain_name(self.native_object,
+                                                     sni)
+                if ret != _SSL_SUCCESS:
+                    raise SSLError("Unable to set domain name check for "
+                                   "hostname verification")
 
         if connected:
             try:
