@@ -572,7 +572,17 @@ class SSLSocket(object):
 
         data = t2b(data)
 
-        return _lib.wolfSSL_write(self.native_object, data, len(data))
+        ret = _lib.wolfSSL_write(
+            self.native_object, data, len(data))
+        if ret <= 0:
+            err = _lib.wolfSSL_get_error(
+                self.native_object, 0)
+            if err == _SSL_ERROR_WANT_WRITE:
+                raise SSLWantWriteError()
+            else:
+                raise SSLError(
+                    "wolfSSL_write error (%d)" % err)
+        return ret
 
     def send(self, data, flags=0):
         if flags != 0:
