@@ -245,6 +245,9 @@ class SSLContext(object):
                                  "between init and wrap_socket()")
 
         if self._server_side is None:
+            if server_side:
+                raise ValueError("SSLContext server_side value not consistent "
+                                 "between init and wrap_socket()")
             self._server_side = server_side
 
         if server_side is None and self._server_side is not None:
