@@ -771,7 +771,7 @@ class SSLSocket(object):
                 if alertRet == _SSL_SUCCESS:
                     alertHistory = alertHistoryPtr[0]
                     code = alertHistory.last_rx.code
-                    alertDesc = _lib.wolfSSL_alert_type_string_long(code)
+                    alertDesc = _lib.wolfSSL_alert_desc_string_long(code)
                     if alertDesc != _ffi.NULL:
                         alertStr = _ffi.string(alertDesc).decode("ascii")
                     else:
