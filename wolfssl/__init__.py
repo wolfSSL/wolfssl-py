@@ -100,6 +100,12 @@ class WolfSSLX509(object):
         if self.native_object == _ffi.NULL:
             raise SSLError("Unable to get internal WOLFSSL_X509 from wolfSSL")
 
+    def __del__(self):
+        if getattr(self, 'native_object', None) is not None \
+                and self.native_object != _ffi.NULL:
+            _lib.wolfSSL_X509_free(self.native_object)
+            self.native_object = _ffi.NULL
+
     def get_subject_cn(self):
         cnPtr = _lib.wolfSSL_X509_get_subjectCN(self.native_object)
         if cnPtr == _ffi.NULL:
