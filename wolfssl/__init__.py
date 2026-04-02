@@ -152,7 +152,9 @@ class SSLContext(object):
     """
 
     def __init__(self, protocol, server_side=None):
-        _lib.wolfSSL_Init()
+        if _lib.wolfSSL_Init() != _SSL_SUCCESS:
+            raise RuntimeError(
+                "wolfSSL library initialization failed")
         method = _WolfSSLMethod(protocol, server_side)
 
         self.protocol = protocol
