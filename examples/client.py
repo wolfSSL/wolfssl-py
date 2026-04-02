@@ -130,6 +130,8 @@ def main():
 
     # DTLS connection  over UDP
     if args.u:
+        if args.v > 2:
+            args.v = 1
         bind_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         context = wolfssl.SSLContext(get_DTLSmethod(args.v))
     # SSL/TLS connection over TCP
