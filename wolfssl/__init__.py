@@ -733,7 +733,8 @@ class SSLSocket(object):
         Returns the wrapped OS socket.
         """
         if self.native_object != _ffi.NULL:
-            _lib.wolfSSL_set_fd(self.native_object, -1)
+            _lib.wolfSSL_shutdown(self.native_object)
+            self._release_native_object()
 
         sock = socket(family=self._sock.family,
                       sock_type=self._sock.type,
