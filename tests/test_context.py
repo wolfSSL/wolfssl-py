@@ -74,3 +74,17 @@ def test_load_verify_locations_with_cafile(ssl_context):
 
 def test_load_verify_locations_with_cadata(ssl_context):
     ssl_context.load_verify_locations(cadata=_CADATA)
+
+
+def test_check_hostname_requires_cert_required(ssl_provider, ssl_context):
+    with pytest.raises(ValueError):
+        ssl_context.check_hostname = True
+
+    ssl_context.verify_mode = ssl_provider.CERT_REQUIRED
+    ssl_context.check_hostname = True
+    assert ssl_context.check_hostname is True
+
+
+def test_wrap_socket_server_side_mismatch(ssl_context, tcp_socket):
+    with pytest.raises(ValueError):
+        ssl_context.wrap_socket(tcp_socket, server_side=True)
