@@ -495,6 +495,7 @@ class SSLSocket(object):
             self.native_object = _ffi.NULL
 
     def pending(self):
+        self._check_closed("pending")
         return _lib.wolfSSL_pending(self.native_object)
 
     @property
@@ -894,7 +895,10 @@ class SSLSocket(object):
         """
         Returns the version of the protocol used in the connection.
         """
-        return _ffi.string(_lib.wolfSSL_get_version(self.native_object)).decode("ascii")
+        self._check_closed("version")
+        return _ffi.string(
+            _lib.wolfSSL_get_version(
+                self.native_object)).decode("ascii")
 
     # The following functions expose functionality of the underlying
     # Socket object. These are also exposed through Python's ssl module
