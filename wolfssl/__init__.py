@@ -750,11 +750,16 @@ class SSLSocket(object):
             peerAddr = _lib.wolfSSL_dtls_create_peer(addr[1],t2b(addr[0]))  
             if peerAddr == _ffi.NULL:
                 raise SSLError("Failed to create peer")
-            ret = _lib.wolfSSL_dtls_set_peer(self.native_object, peerAddr,
-                                             _SOCKADDR_SZ)
-            if ret != _SSL_SUCCESS:
-                raise SSLError("Unable to set dtls peer. E(%d)" % ret)
-            _lib.wolfSSL_dtls_free_peer(peerAddr)  
+            try:
+                ret = _lib.wolfSSL_dtls_set_peer(
+                    self.native_object, peerAddr,
+                    _SOCKADDR_SZ)
+                if ret != _SSL_SUCCESS:
+                    raise SSLError(
+                        "Unable to set dtls peer."
+                        " E(%d)" % ret)
+            finally:
+                _lib.wolfSSL_dtls_free_peer(peerAddr)
 
     def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
