@@ -143,9 +143,7 @@ class WolfSSLX509(object):
         if derPtr == _ffi.NULL:
             return None
 
-        derBytes = _ffi.buffer(derPtr, outSz[0])
-
-        return derBytes
+        return _ffi.buffer(derPtr, outSz[0])[:]
 
 class SSLContext(object):
     """
