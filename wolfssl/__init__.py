@@ -676,6 +676,8 @@ class SSLSocket(object):
         self._check_closed("read")
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
+        else:
+            self.do_handshake()
 
         if buffer is None:
             raise ValueError("buffer cannot be None")
