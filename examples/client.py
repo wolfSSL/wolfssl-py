@@ -153,6 +153,7 @@ def main():
     if args.l:
         context.set_ciphers(args.l)
 
+    secure_socket = None
     try:
         secure_socket = context.wrap_socket(bind_socket)
         
@@ -173,7 +174,8 @@ def main():
         print()
 
     finally:
-        secure_socket.close()
+        if secure_socket:
+            secure_socket.close()
 
 
 if __name__ == '__main__':

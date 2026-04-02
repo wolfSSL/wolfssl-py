@@ -81,7 +81,9 @@ class WolfSSL(object):
 
     @classmethod
     def enable_debug(self):
-        _lib.wolfSSL_Debugging_ON()
+        if _lib.wolfSSL_Debugging_ON() != _SSL_SUCCESS:
+            raise RuntimeError(
+                "wolfSSL debugging not available")
 
     @classmethod
     def disable_debug(self):
@@ -356,9 +358,10 @@ class SSLContext(object):
                 raise SSLError("Unable to load verify locations. E(%d)" % ret)
 
         if cadata is not None:
+            cadata_bytes = t2b(cadata)
             ret = _lib.wolfSSL_CTX_load_verify_buffer(
-                self.native_object, t2b(cadata),
-                len(cadata), _SSL_FILETYPE_PEM)
+                self.native_object, cadata_bytes,
+                len(cadata_bytes), _SSL_FILETYPE_PEM)
 
             if ret != _SSL_SUCCESS:
                 raise SSLError("Unable to load verify locations. E(%d)" % ret)
@@ -476,8 +479,11 @@ class SSLSocket(object):
                 ret = _lib.wolfSSL_check_domain_name(self.native_object,
                                                      sni)
                 if ret != _SSL_SUCCESS:
-                    raise SSLError("Unable to set domain name check for "
-                                   "hostname verification")
+                    self._release_native_object()
+                    raise SSLError(
+                        "Unable to set domain name "
+                        "check for hostname "
+                        "verification")
 
         if connected:
             try:
@@ -606,13 +612,6 @@ class SSLSocket(object):
 
         while sent < length:
             ret = self.write(data[sent:])
-            if (ret <= 0):
-                #expect to receive 0 when peer is reset or closed
-                err = _lib.wolfSSL_get_error(self.native_object, 0)
-                if err == _SSL_ERROR_WANT_WRITE:
-                    raise SSLWantWriteError()
-                else:
-                    raise SSLError("wolfSSL_write error (%d)" % err)
 
             sent += ret
 
@@ -683,7 +682,7 @@ class SSLSocket(object):
         if buffer is None:
             raise ValueError("buffer cannot be None")
 
-        if nbytes is None:
+        if nbytes is None or nbytes == 0:
             nbytes = len(buffer)
         else:
             nbytes = min(len(buffer), nbytes)
@@ -724,7 +723,9 @@ class SSLSocket(object):
 
     def shutdown(self, how):
         if self.native_object != _ffi.NULL:
-            _lib.wolfSSL_shutdown(self.native_object)
+            ret = _lib.wolfSSL_shutdown(self.native_object)
+            if ret == 0:
+                _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._sock.shutdown(how)
@@ -823,18 +824,16 @@ class SSLSocket(object):
             raise ValueError("attempt to connect already-connected SSLSocket!")
 
         err = 0
-        ret = _SSL_SUCCESS
- 
+
         if self._context.protocol >= PROTOCOL_DTLSv1:
-            self.add_peer(addr) 
+            self.add_peer(addr)
         else:
             if connect_ex:
                 err = self._sock.connect_ex(addr)
             else:
-                err = 0
                 self._sock.connect(addr)
 
-        if err == 0 and ret == _SSL_SUCCESS:
+        if err == 0:
             self._connected = True
             if self.do_handshake_on_connect:
                 self.do_handshake()
@@ -912,6 +911,9 @@ class SSLSocket(object):
     # Socket object. These are also exposed through Python's ssl module
     # API and are provided here for compatibility.
     def close(self):
+        if self.native_object != _ffi.NULL:
+            _lib.wolfSSL_shutdown(self.native_object)
+            self._release_native_object()
         self._sock.close()
 
     def fileno(self):
@@ -1041,12 +1043,17 @@ class WolfsslPwd_cb(object):
     def _get_passwd(self, passwd, sz, rw, userdata):
         try:
             result = self._passwd_wrapper(sz, rw, userdata)
-            if not isinstance(result, bytes):
-                raise ValueError("Problem, expected String, not bytes")
-            if len(result) > sz:
-                raise ValueError("Problem with password returned being long")
-            for i in range(len(result)):
-                passwd[i] = result[i:i + 1]
-            return len(result)
-        except Exception as e:
-            raise ValueError("Problem getting password from callback")
+        except Exception:
+            raise ValueError(
+                "Problem getting password from callback")
+        if not isinstance(result, bytes):
+            raise ValueError(
+                "Password callback must return bytes,"
+                " not str")
+        if len(result) > sz:
+            raise ValueError(
+                "Problem with password returned"
+                " being long")
+        for i in range(len(result)):
+            passwd[i] = result[i:i + 1]
+        return len(result)

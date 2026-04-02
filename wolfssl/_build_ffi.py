@@ -405,7 +405,7 @@ cdef = """
     /*
      * Debugging
      */
-    void wolfSSL_Debugging_ON();
+    int wolfSSL_Debugging_ON(void);
     void wolfSSL_Debugging_OFF();
 
     /*
