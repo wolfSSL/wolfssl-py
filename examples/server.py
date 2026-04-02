@@ -170,7 +170,8 @@ def main():
         finally:
             if secure_socket:
                 secure_socket.shutdown(socket.SHUT_RDWR)
-                secure_socket.close()
+                if not args.u:
+                    secure_socket.close()
 
         if not args.i:
             break
