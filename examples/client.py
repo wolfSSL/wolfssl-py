@@ -130,6 +130,8 @@ def main():
 
     # DTLS connection  over UDP
     if args.u:
+        if args.v > 2:
+            args.v = 1
         bind_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         context = wolfssl.SSLContext(get_DTLSmethod(args.v))
     # SSL/TLS connection over TCP
@@ -138,7 +140,10 @@ def main():
         context = wolfssl.SSLContext(get_SSLmethod(args.v))
 
     # enable debug, if native wolfSSL has been compiled with '--enable-debug'
-    wolfssl.WolfSSL.enable_debug()
+    try:
+        wolfssl.WolfSSL.enable_debug()
+    except RuntimeError:
+        pass
 
     context.load_cert_chain(args.c, args.k)
 
@@ -151,6 +156,7 @@ def main():
     if args.l:
         context.set_ciphers(args.l)
 
+    secure_socket = None
     try:
         secure_socket = context.wrap_socket(bind_socket)
         
@@ -171,7 +177,8 @@ def main():
         print()
 
     finally:
-        secure_socket.close()
+        if secure_socket:
+            secure_socket.close()
 
 
 if __name__ == '__main__':

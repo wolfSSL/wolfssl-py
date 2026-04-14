@@ -405,7 +405,7 @@ cdef = """
     /*
      * Debugging
      */
-    void wolfSSL_Debugging_ON();
+    int wolfSSL_Debugging_ON(void);
     void wolfSSL_Debugging_OFF();
 
     /*
@@ -474,7 +474,7 @@ cdef += """
     /*
      * SSL/TLS Session functions
      */
-    void wolfSSL_Init();
+    int wolfSSL_Init(void);
     WOLFSSL* wolfSSL_new(WOLFSSL_CTX*);
     void  wolfSSL_free(WOLFSSL*);
 
