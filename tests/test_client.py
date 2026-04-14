@@ -93,6 +93,47 @@ def test_get_version(ssl_server, ssl_version, tcp_socket):
     secure_socket.read(1024)
 
 
+def test_close_after_connected(ssl_server, tcp_socket):
+    ctx = wolfssl.SSLContext(wolfssl.PROTOCOL_TLSv1_2)
+    sock = ctx.wrap_socket(tcp_socket)
+    sock.connect(('127.0.0.1', ssl_server.port))
+    sock.write(b'hello wolfssl')
+    sock.read(1024)
+    sock.close()
+
+
+def test_recv_into_nbytes_zero(ssl_server, tcp_socket):
+    ctx = wolfssl.SSLContext(wolfssl.PROTOCOL_TLSv1_2)
+    sock = ctx.wrap_socket(tcp_socket)
+    sock.connect(('127.0.0.1', ssl_server.port))
+    sock.write(b'hello wolfssl')
+    buf = bytearray(1024)
+    n = sock.recv_into(buf, 0)
+    assert n > 0
+    sock.close()
+
+
+def test_unwrap_returns_socket(ssl_server, tcp_socket):
+    import socket as _socket
+    ctx = wolfssl.SSLContext(wolfssl.PROTOCOL_TLSv1_2)
+    sock = ctx.wrap_socket(tcp_socket)
+    sock.connect(('127.0.0.1', ssl_server.port))
+    sock.write(b'hello wolfssl')
+    sock.read(1024)
+    raw = sock.unwrap()
+    assert isinstance(raw, _socket.socket)
+    raw.close()
+
+
+def test_sendall_large_buffer(ssl_server, tcp_socket):
+    ctx = wolfssl.SSLContext(wolfssl.PROTOCOL_TLSv1_2)
+    sock = ctx.wrap_socket(tcp_socket)
+    sock.connect(('127.0.0.1', ssl_server.port))
+    sock.sendall(b'x' * 8192)
+    sock.read(1024)
+    sock.close()
+
+
 def test_client_cert_verification_failure():
     """
     Test that a connection fails when the server requires client certificates

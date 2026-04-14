@@ -88,3 +88,21 @@ def test_check_hostname_requires_cert_required(ssl_provider, ssl_context):
 def test_wrap_socket_server_side_mismatch(ssl_context, tcp_socket):
     with pytest.raises(ValueError):
         ssl_context.wrap_socket(tcp_socket, server_side=True)
+
+
+def test_close_without_handshake(ssl_context, tcp_socket):
+    sock = ssl_context.wrap_socket(tcp_socket)
+    sock.close()
+
+
+def test_close_releases_native_object(ssl_context, tcp_socket):
+    sock = ssl_context.wrap_socket(tcp_socket)
+    sock.close()
+    sock.close()
+
+
+def test_operations_after_close_raise(ssl_context, tcp_socket):
+    sock = ssl_context.wrap_socket(tcp_socket)
+    sock.close()
+    with pytest.raises(ValueError):
+        sock.read()

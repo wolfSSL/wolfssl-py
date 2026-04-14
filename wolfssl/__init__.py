@@ -612,7 +612,6 @@ class SSLSocket(object):
 
         while sent < length:
             ret = self.write(data[sent:])
-
             sent += ret
 
         return None
@@ -736,11 +735,15 @@ class SSLSocket(object):
         Returns the wrapped OS socket.
         """
         if self.native_object != _ffi.NULL:
-            _lib.wolfSSL_shutdown(self.native_object)
+            if self._connected:
+                # Single-step shutdown is intentional; any
+                # bidirectional close_notify exchange is the
+                # caller's responsibility on the raw socket.
+                _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
 
         sock = socket(family=self._sock.family,
-                      sock_type=self._sock.type,
+                      type=self._sock.type,
                       proto=self._sock.proto,
                       fileno=self._sock.fileno())
 
@@ -750,19 +753,19 @@ class SSLSocket(object):
         return sock
 
     def add_peer(self, addr):
-            peerAddr = _lib.wolfSSL_dtls_create_peer(addr[1],t2b(addr[0]))  
-            if peerAddr == _ffi.NULL:
-                raise SSLError("Failed to create peer")
-            try:
-                ret = _lib.wolfSSL_dtls_set_peer(
-                    self.native_object, peerAddr,
-                    _SOCKADDR_SZ)
-                if ret != _SSL_SUCCESS:
-                    raise SSLError(
-                        "Unable to set dtls peer."
-                        " E(%d)" % ret)
-            finally:
-                _lib.wolfSSL_dtls_free_peer(peerAddr)
+        peerAddr = _lib.wolfSSL_dtls_create_peer(addr[1], t2b(addr[0]))
+        if peerAddr == _ffi.NULL:
+            raise SSLError("Failed to create peer")
+        try:
+            ret = _lib.wolfSSL_dtls_set_peer(
+                self.native_object, peerAddr,
+                _SOCKADDR_SZ)
+            if ret != _SSL_SUCCESS:
+                raise SSLError(
+                    "Unable to set dtls peer."
+                    " E(%d)" % ret)
+        finally:
+            _lib.wolfSSL_dtls_free_peer(peerAddr)
 
     def do_handshake(self, block=False):  # pylint: disable=unused-argument
         """
@@ -912,7 +915,11 @@ class SSLSocket(object):
     # API and are provided here for compatibility.
     def close(self):
         if self.native_object != _ffi.NULL:
-            _lib.wolfSSL_shutdown(self.native_object)
+            if self._connected:
+                # Single-step shutdown is intentional here; the
+                # socket is about to be closed so a bidirectional
+                # close_notify exchange is not required.
+                _lib.wolfSSL_shutdown(self.native_object)
             self._release_native_object()
         self._sock.close()
 
@@ -1048,8 +1055,7 @@ class WolfsslPwd_cb(object):
                 "Problem getting password from callback")
         if not isinstance(result, bytes):
             raise ValueError(
-                "Password callback must return bytes,"
-                " not str")
+                "Password callback must return bytes")
         if len(result) > sz:
             raise ValueError(
                 "Problem with password returned"

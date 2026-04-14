@@ -119,8 +119,8 @@ def main():
     args = build_arg_parser().parse_args()
     # DTLS connection over UDP
     if args.u:
-        # Set DTLSv1.2 as default if unspecified 
-        if args.v == 5:
+        # Set DTLSv1.2 as default if unspecified
+        if args.v > 2:
             args.v = 1
         bind_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         bind_socket.bind(("" if args.b else "localhost", args.p))
@@ -136,7 +136,10 @@ def main():
     print("Server listening on port", bind_socket.getsockname()[1])
 
     # enable debug, if native wolfSSL has been compiled with '--enable-debug'
-    wolfssl.WolfSSL.enable_debug()
+    try:
+        wolfssl.WolfSSL.enable_debug()
+    except RuntimeError:
+        pass
 
     context.load_cert_chain(args.c, args.k)
 
@@ -170,6 +173,9 @@ def main():
         finally:
             if secure_socket:
                 secure_socket.shutdown(socket.SHUT_RDWR)
+                # Don't close for DTLS - secure_socket wraps the
+                # shared bind_socket which is needed for
+                # subsequent connections
                 if not args.u:
                     secure_socket.close()
 

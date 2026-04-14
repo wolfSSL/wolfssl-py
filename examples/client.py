@@ -140,7 +140,10 @@ def main():
         context = wolfssl.SSLContext(get_SSLmethod(args.v))
 
     # enable debug, if native wolfSSL has been compiled with '--enable-debug'
-    wolfssl.WolfSSL.enable_debug()
+    try:
+        wolfssl.WolfSSL.enable_debug()
+    except RuntimeError:
+        pass
 
     context.load_cert_chain(args.c, args.k)
 
