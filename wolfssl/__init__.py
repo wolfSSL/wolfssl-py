@@ -658,6 +658,9 @@ class SSLSocket(object):
             err = _lib.wolfSSL_get_error(self.native_object, 0)
             if err == _SSL_ERROR_WANT_READ:
                 raise SSLWantReadError()
+            elif err == _SSL_ERROR_WANT_WRITE:
+                # wolfSSL_read can require a write first (e.g. renegotiation).
+                raise SSLWantWriteError()
             else:
                 raise SSLError("wolfSSL_read error (%d)" % err)
 
