@@ -97,7 +97,15 @@ class WolfSSLX509(object):
     """
 
     def __init__(self, session):
-        self.native_object = _lib.wolfSSL_get_peer_certificate(session)
+        # `session` kept as the original public parameter name. Accept a
+        # WOLFSSL* session (fetch the peer cert here) or an already-obtained
+        # WOLFSSL_X509* (used by SSLSocket.get_peer_x509()).
+        if _ffi.typeof(session).cname == "WOLFSSL *":
+            x509 = _lib.wolfSSL_get_peer_certificate(session)
+        else:
+            x509 = session
+
+        self.native_object = x509
 
         if self.native_object == _ffi.NULL:
             raise SSLError("Unable to get internal WOLFSSL_X509 from wolfSSL")
@@ -899,13 +907,17 @@ class SSLSocket(object):
 
     def get_peer_x509(self):
         """
-        Returns WolfSSLX509 object representing the peer's certificate,
-        after making a successful SSL/TLS connection.
+        Returns a WolfSSLX509 object representing the peer's certificate,
+        or None if the peer did not present one (or there is no session).
         """
         if self.native_object == _ffi.NULL:
             return None
 
-        return WolfSSLX509(self.native_object)
+        x509 = _lib.wolfSSL_get_peer_certificate(self.native_object)
+        if x509 == _ffi.NULL:
+            return None
+
+        return WolfSSLX509(x509)
 
     def getpeercert(self, binary_form=False):
         """
