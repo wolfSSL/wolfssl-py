@@ -460,6 +460,9 @@ class SSLSocket(object):
 
         self._closed = False
         self._connected = connected
+        # Tracks whether the (DTLS) handshake has completed so I/O methods
+        # don't re-drive it on every call.
+        self._handshake_complete = False
 
         # create the SSL object
         self.native_object = _lib.wolfSSL_new(self.context.native_object)
@@ -577,8 +580,8 @@ class SSLSocket(object):
 	# Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
-        # Complete handshake if DTLS connection
-        else:
+        # Drive the DTLS handshake only until it has completed.
+        elif not self._handshake_complete:
             self.do_handshake()
 
         data = t2b(data)
@@ -643,8 +646,8 @@ class SSLSocket(object):
         # Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
-        # Complete handshake if DTLS connection
-        else:
+        # Drive the DTLS handshake only until it has completed.
+        elif not self._handshake_complete:
             self.do_handshake()
 
         if buffer is not None:
@@ -681,7 +684,8 @@ class SSLSocket(object):
         self._check_closed("read")
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
-        else:
+        # Drive the DTLS handshake only until it has completed.
+        elif not self._handshake_complete:
             self.do_handshake()
 
         if buffer is None:
@@ -825,6 +829,9 @@ class SSLSocket(object):
                 else:
                     raise SSLError("do_handshake failed with error %d: %s" %
                                    (err, eStr))
+
+        # Reached only on success (every failure path above raises).
+        self._handshake_complete = True
 
     def _real_connect(self, addr, connect_ex):
         if self._server_side:
