@@ -577,14 +577,20 @@ class SSLSocket(object):
         Returns number of bytes of DATA actually transmitted.
         """
         self._check_closed("write")
-	# Check connected if not DTLS
+        # Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
         # Drive the DTLS handshake only until it has completed.
         elif not self._handshake_complete:
             self.do_handshake()
 
-        data = t2b(data)
+        # Send bytes-like objects verbatim; fall back to t2b() for other
+        # types (e.g. str) to preserve backward compatibility.
+        if not isinstance(data, bytes):
+            try:
+                data = bytes(memoryview(data))
+            except TypeError:
+                data = t2b(data)
 
         ret = _lib.wolfSSL_write(
             self.native_object, data, len(data))
