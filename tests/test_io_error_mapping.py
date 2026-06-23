@@ -102,3 +102,18 @@ def test_read_want_read_still_raises_wantread(monkeypatch):
     sock = _make_socket()
     with pytest.raises(wolfssl.SSLWantReadError):
         sock.read(16)
+
+
+def test_recv_into_want_write_raises_wantwrite(monkeypatch):
+    """F-3907: wolfSSL_read in recv_into returning WANT_WRITE."""
+    _patch_lib(monkeypatch, -1, wolfssl._SSL_ERROR_WANT_WRITE)
+    sock = _make_socket()
+    with pytest.raises(wolfssl.SSLWantWriteError):
+        sock.recv_into(bytearray(16))
+
+
+def test_recv_into_want_read_still_raises_wantread(monkeypatch):
+    _patch_lib(monkeypatch, -1, wolfssl._SSL_ERROR_WANT_READ)
+    sock = _make_socket()
+    with pytest.raises(wolfssl.SSLWantReadError):
+        sock.recv_into(bytearray(16))
