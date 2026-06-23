@@ -90,6 +90,12 @@ def build_arg_parser():
     )
 
     parser.add_argument(
+        "-n", action="store_true",
+        help="Disable server hostname check "
+             "(needed for IP literals or test certificates)"
+    )
+
+    parser.add_argument(
         "-g", action="store_true",
         help="Send server HTTP GET"
     )
@@ -125,6 +131,33 @@ def get_DTLSmethod(index):
         wolfssl.PROTOCOL_DTLSv1_3
     )[index]
 
+def configure_verification(context, args):
+    """
+    Configure peer certificate and hostname verification on the context
+    according to the parsed arguments. Returns the server_hostname to pass
+    to wrap_socket() (None when no hostname check should be performed).
+
+    When certificate verification is enabled (the default), hostname
+    verification is enabled too so that a CA-trusted certificate issued for
+    a different host is rejected. Pass -n to opt out explicitly (e.g. when
+    connecting to an IP literal or using test certificates).
+    """
+    if args.d:
+        context.verify_mode = wolfssl.CERT_NONE
+        context.check_hostname = False
+        return None
+
+    context.verify_mode = wolfssl.CERT_REQUIRED
+    context.load_verify_locations(args.A)
+
+    if args.n:
+        context.check_hostname = False
+        return None
+
+    context.check_hostname = True
+    return args.h
+
+
 def main():
     args = build_arg_parser().parse_args()
 
@@ -147,18 +180,15 @@ def main():
 
     context.load_cert_chain(args.c, args.k)
 
-    if args.d:
-        context.verify_mode = wolfssl.CERT_NONE
-    else:
-        context.verify_mode = wolfssl.CERT_REQUIRED
-        context.load_verify_locations(args.A)
+    server_hostname = configure_verification(context, args)
 
     if args.l:
         context.set_ciphers(args.l)
 
     secure_socket = None
     try:
-        secure_socket = context.wrap_socket(bind_socket)
+        secure_socket = context.wrap_socket(
+            bind_socket, server_hostname=server_hostname)
         
         if not args.C:
             secure_socket.enable_crl(1)
