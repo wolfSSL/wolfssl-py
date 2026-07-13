@@ -132,13 +132,13 @@ def get_DTLSmethod(index):
     )[index]
 
 def is_ip_literal(host):
-    for family in (socket.AF_INET, socket.AF_INET6):
-        try:
-            socket.inet_pton(family, host)
-            return True
-        except (socket.error, ValueError):
-            pass
-    return False
+    # AI_NUMERICHOST never resolves, it only parses. Unlike
+    # socket.inet_pton() it is available on every supported platform.
+    try:
+        socket.getaddrinfo(host, None, 0, 0, 0, socket.AI_NUMERICHOST)
+        return True
+    except socket.error:
+        return False
 
 
 def configure_verification(context, args):
