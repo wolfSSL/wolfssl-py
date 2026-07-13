@@ -26,6 +26,7 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 
 import wolfssl
 
@@ -150,14 +151,21 @@ def test_default_invocation_end_to_end():
         line = server.stdout.readline().decode()
         assert "Server listening" in line, line
 
-        client = subprocess.run(
+        client = subprocess.Popen(
             [sys.executable, "-u", os.path.join("examples", "client.py"),
              "-p", str(port)],
-            cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            timeout=60)
+            cwd=root, env=env, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+        # Watchdog instead of communicate(timeout=...), which is 3.3+.
+        watchdog = threading.Timer(60, client.kill)
+        watchdog.start()
+        try:
+            out, _ = client.communicate()
+        finally:
+            watchdog.cancel()
 
-        assert client.returncode == 0, client.stdout.decode()
-        assert b"I hear you fa shizzle" in client.stdout
+        assert client.returncode == 0, out.decode()
+        assert b"I hear you fa shizzle" in out
     finally:
         server.kill()
         server.wait()
