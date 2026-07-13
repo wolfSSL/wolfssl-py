@@ -92,7 +92,7 @@ def build_arg_parser():
     parser.add_argument(
         "-n", action="store_true",
         help="Disable server hostname check "
-             "(needed for IP literals or test certificates)"
+             "(IP literal hosts are never hostname-checked)"
     )
 
     parser.add_argument(
@@ -131,6 +131,16 @@ def get_DTLSmethod(index):
         wolfssl.PROTOCOL_DTLSv1_3
     )[index]
 
+def is_ip_literal(host):
+    for family in (socket.AF_INET, socket.AF_INET6):
+        try:
+            socket.inet_pton(family, host)
+            return True
+        except (socket.error, ValueError):
+            pass
+    return False
+
+
 def configure_verification(context, args):
     """
     Configure peer certificate and hostname verification on the context
@@ -140,7 +150,12 @@ def configure_verification(context, args):
     When certificate verification is enabled (the default), hostname
     verification is enabled too so that a CA-trusted certificate issued for
     a different host is rejected. Pass -n to opt out explicitly (e.g. when
-    connecting to an IP literal or using test certificates).
+    using test certificates).
+
+    IP literal hosts are not hostname-checked: wolfSSL_check_domain_name()
+    only matches DNS names (iPAddress SANs are skipped on this path), and
+    RFC 6066 forbids IP literals in SNI. Certificate verification against
+    the CA still applies. Connect by DNS name to also verify the hostname.
     """
     if args.d:
         context.verify_mode = wolfssl.CERT_NONE
@@ -151,6 +166,12 @@ def configure_verification(context, args):
     context.load_verify_locations(args.A)
 
     if args.n:
+        context.check_hostname = False
+        return None
+
+    if is_ip_literal(args.h):
+        print("Note: skipping hostname check for IP literal '{}'. "
+              "Connect by DNS name to enable it.".format(args.h))
         context.check_hostname = False
         return None
 
