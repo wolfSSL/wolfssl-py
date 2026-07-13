@@ -78,7 +78,8 @@ def test_write_memoryview_sends_contents(monkeypatch):
 
 def test_write_str_is_utf8_encoded(monkeypatch):
     # Backward compatibility: str is UTF-8 encoded (historical t2b()
-    # behavior), not rejected.
+    # behavior), not rejected. The \u00e9 escape keeps the source 7-bit
+    # ASCII while still exercising a multi-byte UTF-8 encoding.
     sock, lib = _make_socket(monkeypatch)
-    sock.write("héllo")
-    assert lib.written == "héllo".encode("utf-8")
+    sock.write("h\u00e9llo")
+    assert lib.written == "h\u00e9llo".encode("utf-8")
