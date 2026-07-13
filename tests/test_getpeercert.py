@@ -21,10 +21,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
 
 # pylint: disable=missing-docstring, invalid-name, import-error
+# pylint: disable=protected-access
 
 import socket
 from contextlib import contextmanager
 from threading import Thread
+
+import pytest
 
 import wolfssl
 
@@ -114,3 +117,15 @@ def test_wolfsslx509_accepts_session_for_backward_compat():
         # Both forms resolve to the same server certificate.
         assert from_session.get_subject_cn() != ""
         assert from_session.get_subject_cn() == from_helper.get_subject_cn()
+
+
+def test_wolfsslx509_rejects_unexpected_types():
+    """
+    WolfSSLX509 discriminates WOLFSSL* from WOLFSSL_X509* by cffi type.
+    Anything else must raise TypeError instead of being treated as a
+    certificate pointer.
+    """
+    with pytest.raises(TypeError):
+        wolfssl.WolfSSLX509(object())
+    with pytest.raises(TypeError):
+        wolfssl.WolfSSLX509(wolfssl._ffi.new("int *"))

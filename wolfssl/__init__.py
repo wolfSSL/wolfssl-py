@@ -100,10 +100,17 @@ class WolfSSLX509(object):
         # `session` kept as the original public parameter name. Accept a
         # WOLFSSL* session (fetch the peer cert here) or an already-obtained
         # WOLFSSL_X509* (used by SSLSocket.get_peer_x509()).
-        if _ffi.typeof(session).cname == "WOLFSSL *":
+        # Compare cffi type objects, not type name strings: typeof()
+        # results are interned per FFI instance, so this is exact and
+        # does not depend on how cffi renders the name.
+        ctype = _ffi.typeof(session)
+        if ctype is _ffi.typeof("WOLFSSL *"):
             x509 = _lib.wolfSSL_get_peer_certificate(session)
-        else:
+        elif ctype is _ffi.typeof("WOLFSSL_X509 *"):
             x509 = session
+        else:
+            raise TypeError("session must be a WOLFSSL* or a WOLFSSL_X509*, "
+                            "got %s" % ctype)
 
         self.native_object = x509
 
