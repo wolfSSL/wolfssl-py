@@ -115,6 +115,21 @@ def get_DTLSmethod(index):
     )[index]
 
 
+# Large enough to peek a DTLS ClientHello source address.
+PEEK_BUFSIZE = 1500
+
+
+def peek_peer_address(sock):
+    """
+    Return the source address of the next pending datagram without removing
+    it from the socket queue. MSG_PEEK leaves the datagram (the DTLS
+    ClientHello) intact so wolfSSL_accept() can consume it during the
+    handshake.
+    """
+    _, from_addr = sock.recvfrom(PEEK_BUFSIZE, socket.MSG_PEEK)
+    return from_addr
+
+
 def main():
     args = build_arg_parser().parse_args()
     # DTLS connection over UDP
@@ -124,7 +139,6 @@ def main():
             args.v = 1
         bind_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         bind_socket.bind(("" if args.b else "localhost", args.p))
-        data, from_addr = bind_socket.recvfrom(1)
         context = wolfssl.SSLContext(get_DTLSmethod(args.v), server_side=True)
     # SSL/TLS connection over TCP
     else:
@@ -156,6 +170,9 @@ def main():
         try:
             secure_socket = None
             if args.u:
+                # Peek the client's address for this connection without
+                # consuming the ClientHello datagram needed by the handshake.
+                from_addr = peek_peer_address(bind_socket)
                 secure_socket = context.wrap_socket(bind_socket)
             else:
                 new_socket, from_addr = bind_socket.accept()

@@ -97,7 +97,22 @@ class WolfSSLX509(object):
     """
 
     def __init__(self, session):
-        self.native_object = _lib.wolfSSL_get_peer_certificate(session)
+        # `session` kept as the original public parameter name. Accept a
+        # WOLFSSL* session (fetch the peer cert here) or an already-obtained
+        # WOLFSSL_X509* (used by SSLSocket.get_peer_x509()).
+        # Compare cffi type objects, not type name strings: typeof()
+        # results are interned per FFI instance, so this is exact and
+        # does not depend on how cffi renders the name.
+        ctype = _ffi.typeof(session)
+        if ctype is _ffi.typeof("WOLFSSL *"):
+            x509 = _lib.wolfSSL_get_peer_certificate(session)
+        elif ctype is _ffi.typeof("WOLFSSL_X509 *"):
+            x509 = session
+        else:
+            raise TypeError("session must be a WOLFSSL* or a WOLFSSL_X509*, "
+                            "got %s" % ctype)
+
+        self.native_object = x509
 
         if self.native_object == _ffi.NULL:
             raise SSLError("Unable to get internal WOLFSSL_X509 from wolfSSL")
@@ -460,6 +475,9 @@ class SSLSocket(object):
 
         self._closed = False
         self._connected = connected
+        # Tracks whether the (DTLS) handshake has completed so I/O methods
+        # don't re-drive it on every call.
+        self._handshake_complete = False
 
         # create the SSL object
         self.native_object = _lib.wolfSSL_new(self.context.native_object)
@@ -574,14 +592,20 @@ class SSLSocket(object):
         Returns number of bytes of DATA actually transmitted.
         """
         self._check_closed("write")
-	# Check connected if not DTLS
+        # Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
-        # Complete handshake if DTLS connection
-        else:
+        # Drive the DTLS handshake only until it has completed.
+        elif not self._handshake_complete:
             self.do_handshake()
 
-        data = t2b(data)
+        # Send bytes-like objects verbatim; fall back to t2b() for other
+        # types (e.g. str) to preserve backward compatibility.
+        if not isinstance(data, bytes):
+            try:
+                data = bytes(memoryview(data))
+            except TypeError:
+                data = t2b(data)
 
         ret = _lib.wolfSSL_write(
             self.native_object, data, len(data))
@@ -590,6 +614,9 @@ class SSLSocket(object):
                 self.native_object, 0)
             if err == _SSL_ERROR_WANT_WRITE:
                 raise SSLWantWriteError()
+            elif err == _SSL_ERROR_WANT_READ:
+                # wolfSSL_write can require a read first (e.g. renegotiation).
+                raise SSLWantReadError()
             else:
                 raise SSLError(
                     "wolfSSL_write error (%d)" % err)
@@ -640,8 +667,8 @@ class SSLSocket(object):
         # Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
-        # Complete handshake if DTLS connection
-        else:
+        # Drive the DTLS handshake only until it has completed.
+        elif not self._handshake_complete:
             self.do_handshake()
 
         if buffer is not None:
@@ -655,6 +682,9 @@ class SSLSocket(object):
             err = _lib.wolfSSL_get_error(self.native_object, 0)
             if err == _SSL_ERROR_WANT_READ:
                 raise SSLWantReadError()
+            elif err == _SSL_ERROR_WANT_WRITE:
+                # wolfSSL_read can require a write first (e.g. renegotiation).
+                raise SSLWantWriteError()
             else:
                 raise SSLError("wolfSSL_read error (%d)" % err)
 
@@ -675,7 +705,8 @@ class SSLSocket(object):
         self._check_closed("read")
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
-        else:
+        # Drive the DTLS handshake only until it has completed.
+        elif not self._handshake_complete:
             self.do_handshake()
 
         if buffer is None:
@@ -696,6 +727,9 @@ class SSLSocket(object):
             err = _lib.wolfSSL_get_error(self.native_object, 0)
             if err == _SSL_ERROR_WANT_READ:
                 raise SSLWantReadError()
+            elif err == _SSL_ERROR_WANT_WRITE:
+                # wolfSSL_read can require a write first (e.g. renegotiation).
+                raise SSLWantWriteError()
             else:
                 raise SSLError("wolfSSL_read error (%d)" % err)
 
@@ -817,6 +851,9 @@ class SSLSocket(object):
                     raise SSLError("do_handshake failed with error %d: %s" %
                                    (err, eStr))
 
+        # Reached only on success (every failure path above raises).
+        self._handshake_complete = True
+
     def _real_connect(self, addr, connect_ex):
         if self._server_side:
             raise ValueError("can't connect in server-side mode")
@@ -877,13 +914,17 @@ class SSLSocket(object):
 
     def get_peer_x509(self):
         """
-        Returns WolfSSLX509 object representing the peer's certificate,
-        after making a successful SSL/TLS connection.
+        Returns a WolfSSLX509 object representing the peer's certificate,
+        or None if the peer did not present one (or there is no session).
         """
         if self.native_object == _ffi.NULL:
             return None
 
-        return WolfSSLX509(self.native_object)
+        x509 = _lib.wolfSSL_get_peer_certificate(self.native_object)
+        if x509 == _ffi.NULL:
+            return None
+
+        return WolfSSLX509(x509)
 
     def getpeercert(self, binary_form=False):
         """

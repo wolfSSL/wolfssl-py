@@ -90,6 +90,12 @@ def build_arg_parser():
     )
 
     parser.add_argument(
+        "-n", action="store_true",
+        help="Disable server hostname check "
+             "(IP literal hosts are never hostname-checked)"
+    )
+
+    parser.add_argument(
         "-g", action="store_true",
         help="Send server HTTP GET"
     )
@@ -125,6 +131,54 @@ def get_DTLSmethod(index):
         wolfssl.PROTOCOL_DTLSv1_3
     )[index]
 
+def is_ip_literal(host):
+    # AI_NUMERICHOST never resolves, it only parses. Unlike
+    # socket.inet_pton() it is available on every supported platform.
+    try:
+        socket.getaddrinfo(host, None, 0, 0, 0, socket.AI_NUMERICHOST)
+        return True
+    except socket.error:
+        return False
+
+
+def configure_verification(context, args):
+    """
+    Configure peer certificate and hostname verification on the context
+    according to the parsed arguments. Returns the server_hostname to pass
+    to wrap_socket() (None when no hostname check should be performed).
+
+    When certificate verification is enabled (the default), hostname
+    verification is enabled too so that a CA-trusted certificate issued for
+    a different host is rejected. Pass -n to opt out explicitly (e.g. when
+    using test certificates).
+
+    IP literal hosts are not hostname-checked: wolfSSL_check_domain_name()
+    only matches DNS names (iPAddress SANs are skipped on this path), and
+    RFC 6066 forbids IP literals in SNI. Certificate verification against
+    the CA still applies. Connect by DNS name to also verify the hostname.
+    """
+    if args.d:
+        context.verify_mode = wolfssl.CERT_NONE
+        context.check_hostname = False
+        return None
+
+    context.verify_mode = wolfssl.CERT_REQUIRED
+    context.load_verify_locations(args.A)
+
+    if args.n:
+        context.check_hostname = False
+        return None
+
+    if is_ip_literal(args.h):
+        print("Note: skipping hostname check for IP literal '{}'. "
+              "Connect by DNS name to enable it.".format(args.h))
+        context.check_hostname = False
+        return None
+
+    context.check_hostname = True
+    return args.h
+
+
 def main():
     args = build_arg_parser().parse_args()
 
@@ -147,18 +201,15 @@ def main():
 
     context.load_cert_chain(args.c, args.k)
 
-    if args.d:
-        context.verify_mode = wolfssl.CERT_NONE
-    else:
-        context.verify_mode = wolfssl.CERT_REQUIRED
-        context.load_verify_locations(args.A)
+    server_hostname = configure_verification(context, args)
 
     if args.l:
         context.set_ciphers(args.l)
 
     secure_socket = None
     try:
-        secure_socket = context.wrap_socket(bind_socket)
+        secure_socket = context.wrap_socket(
+            bind_socket, server_hostname=server_hostname)
         
         if not args.C:
             secure_socket.enable_crl(1)
