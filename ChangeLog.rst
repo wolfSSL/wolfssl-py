@@ -1,3 +1,13 @@
+wolfSSL-py Release 5.9.2 (Jul 15, 2026)
+============================================
+* Fix SSLSocket.write() corrupting bytes-like data such as bytearray/memoryview
+* Return None instead of raising from getpeercert() when the peer sends no certificate
+* Require verify_mode=CERT_REQUIRED when enabling check_hostname
+* Map non-blocking WANT_READ/WANT_WRITE to SSLWantReadError/SSLWantWriteError
+* FFI and build fixes
+* Fenrir fixes
+* Update wolfSSL to version 5.9.2
+
 wolfSSL-py Release 5.8.4 (Dec 29, 2025)
 ============================================
 * Fix an issue which allowed a client without a cert to connect despite setting verify_mode to CERT_REQUIRED (CVE-2025-15346):
