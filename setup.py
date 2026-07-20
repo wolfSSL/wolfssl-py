@@ -59,7 +59,7 @@ setup(
     author="wolfSSL Inc.",
     author_email="info@wolfssl.com",
     url="https://github.com/wolfssl/wolfssl-py",
-    license="GPLv3-or-later or Commercial License",
+    license="GPLv3 or Commercial License",
 
     packages=["wolfssl"],
 

@@ -29,7 +29,7 @@ __uri__ = "https://github.com/wolfssl/wolfssl-py"
 __author__ = "wolfSSL Inc."
 __email__ = "info@wolfssl.com"
 
-__license__ = "GPLv3-or-later or Commercial License"
+__license__ = "GPLv3 or Commercial License"
 __copyright__ = "Copyright (C) 2006-2026 wolfSSL Inc"
 
 __all__ = [
