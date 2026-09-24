@@ -145,8 +145,9 @@ def make_flags(prefix, debug):
     # defaults to None (that eval to False)
     disable_scr = os.getenv("WOLFSSLPY_DISABLE_SCR")
 
-    if get_platform() in ["linux-x86_64", "linux-i686"]:
-        cflags.append("-fpic")
+    # The static lib is linked into the shared extension.
+    if get_platform().startswith("linux"):
+        cflags.append("-fPIC")
 
     # install location
     flags.append("--prefix={}".format(prefix))
