@@ -570,6 +570,8 @@ class SSLSocket(object):
         """
         Enables CRL certificate revocation
         """
+        if not _lib.CRL_ENABLED:
+            raise NotImplementedError("wolfSSL not built with CRL support")
         ret = _lib.wolfSSL_EnableCRL(self.native_object, options)
 
         if ret != _SSL_SUCCESS:
@@ -579,6 +581,8 @@ class SSLSocket(object):
         """
         Load CRL certificate revocation
         """
+        if not _lib.CRL_ENABLED:
+            raise NotImplementedError("wolfSSL not built with CRL support")
         ret = _lib.wolfSSL_LoadCRLFile(self.native_object,
                                        t2b(path) if path else _ffi.NULL,
                                        filetype)

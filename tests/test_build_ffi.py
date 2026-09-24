@@ -29,13 +29,15 @@ import shlex
 import pytest
 
 import wolfssl
+from wolfssl._version import __wolfssl_version__
 
 BUILD_SCRIPT = os.path.join(
     os.path.dirname(os.path.abspath(wolfssl.__file__)), "_build_ffi.py")
+REPO_ROOT = os.path.dirname(os.path.dirname(BUILD_SCRIPT))
 
 # options.h macros of a supported USE_LOCAL_WOLFSSL build. KEEP_PEER_CERT
 # is left out: settings.h derives it, so configure output often lacks it.
-GOOD_MACROS = ("HAVE_SNI", "OPENSSL_EXTRA", "OPENSSL_ALL")
+GOOD_MACROS = ("HAVE_SNI", "OPENSSL_EXTRA", "OPENSSL_ALL", "HAVE_CRL")
 
 
 def _options_h(macros):
@@ -54,9 +56,10 @@ def run_build_script(tmpdir, monkeypatch):
     and no wolfSSL is built."""
     pytest.importorskip("distutils.util")
 
-    def run(macros=GOOD_MACROS):
-        tmpdir.ensure("include", "wolfssl", "options.h").write(
-            _options_h(macros))
+    def run(macros=GOOD_MACROS, options_h=None):
+        if options_h is None:
+            options_h = _options_h(macros)
+        tmpdir.ensure("include", "wolfssl", "options.h").write(options_h)
         monkeypatch.setenv("USE_LOCAL_WOLFSSL", str(tmpdir))
         namespace = {"__name__": "__cffi__", "__file__": BUILD_SCRIPT}
         with open(BUILD_SCRIPT) as script:
@@ -137,3 +140,34 @@ def test_local_build_rejects_no_filesystem(run_build_script):
     """
     with pytest.raises(RuntimeError, match="filesystem"):
         run_build_script(GOOD_MACROS + ("NO_FILESYSTEM",))
+
+
+def test_crl_bindings_omitted_without_have_crl(run_build_script):
+    """The CRL APIs only exist with HAVE_CRL, which is optional (F-12663)."""
+    ns = run_build_script(_without(GOOD_MACROS, "HAVE_CRL"))
+    assert ns["CRL_ENABLED"] == 0
+    assert not _declares(ns["ffi_cdef"], "wolfSSL_EnableCRL")
+    assert not _declares(ns["ffi_cdef"], "wolfSSL_LoadCRLFile")
+
+
+def test_crl_bindings_present_with_have_crl(run_build_script):
+    ns = run_build_script()
+    assert ns["CRL_ENABLED"] == 1
+    assert _declares(ns["ffi_cdef"], "wolfSSL_EnableCRL")
+    assert _declares(ns["ffi_cdef"], "wolfSSL_LoadCRLFile")
+
+
+def test_bundled_options_pass_local_detection(run_build_script):
+    """Detection on the bundled build's options.h agrees with the defaults
+    used when building it (F-12663).
+    """
+    platform = pytest.importorskip("distutils.util").get_platform()
+    options_path = os.path.join(REPO_ROOT, "lib", "wolfssl", platform,
+                                __wolfssl_version__, "include", "wolfssl",
+                                "options.h")
+    if not os.path.isfile(options_path):
+        pytest.skip("bundled wolfSSL is not built")
+    with open(options_path) as options:
+        ns = run_build_script(options_h=options.read())
+    assert ns["CRL_ENABLED"] == 1
+    assert ns["OLDTLS_ENABLED"] == 0

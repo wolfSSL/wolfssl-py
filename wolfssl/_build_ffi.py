@@ -327,11 +327,14 @@ else:
 
 # default values
 OLDTLS_ENABLED = 0
+CRL_ENABLED = 1
 
 if featureDetection:
     OLDTLS_ENABLED = 0 if is_defined(optionsHeaderStr, "NO_OLD_TLS") else 1
+    CRL_ENABLED = 1 if is_defined(optionsHeaderStr, "HAVE_CRL") else 0
 
 sys.stderr.write("\nOLDTLS: %d\n" % OLDTLS_ENABLED)
+sys.stderr.write("\nCRL: %d\n" % CRL_ENABLED)
 
 WolfFunction = namedtuple("WolfFunction", ["name", "native_sig", "ossl_sig"])
 # Depending on how wolfSSL was configured, the functions below may or may not be
@@ -354,6 +357,7 @@ source = """
     #include <wolfssl/ssl.h>
 
     int OLDTLS_ENABLED = """ + str(OLDTLS_ENABLED) + """;
+    int CRL_ENABLED = """ + str(CRL_ENABLED) + """;
 """
 ffi_source = source + openssl.source
 
@@ -390,6 +394,7 @@ cdef = """
     typedef unsigned int word32;
 
     extern int OLDTLS_ENABLED;
+    extern int CRL_ENABLED;
 
     /*
      * Opaque structs.
@@ -524,8 +529,6 @@ cdef += """
     int           wolfSSL_set_tlsext_host_name(WOLFSSL*, const char*);
     long          wolfSSL_ctrl(WOLFSSL*, int, long, void*);
     void          wolfSSL_set_connect_state(WOLFSSL*);
-    int           wolfSSL_EnableCRL(WOLFSSL*, int);
-    int           wolfSSL_LoadCRLFile(WOLFSSL*, const char*, int);
     void*         wolfSSL_dtls_create_peer(int, char*);
     int           wolfSSL_dtls_free_peer(void*);
     int           wolfSSL_dtls_set_peer(WOLFSSL*, void*, unsigned int);
@@ -602,6 +605,12 @@ cdef += """
     const char*   wolfSSL_OBJ_nid2sn(int n);
     int           wolfSSL_OBJ_txt2nid(const char*);
 """
+
+if CRL_ENABLED:
+    cdef += """
+    int           wolfSSL_EnableCRL(WOLFSSL*, int);
+    int           wolfSSL_LoadCRLFile(WOLFSSL*, const char*, int);
+    """
 
 for func in optional_funcs:
     cdef += "{};".format(func.native_sig)
