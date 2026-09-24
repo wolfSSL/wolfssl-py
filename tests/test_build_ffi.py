@@ -23,6 +23,7 @@
 # pylint: disable=missing-docstring, redefined-outer-name
 
 import os
+import re
 import shlex
 
 import pytest
@@ -33,7 +34,7 @@ BUILD_SCRIPT = os.path.join(
     os.path.dirname(os.path.abspath(wolfssl.__file__)), "_build_ffi.py")
 
 # options.h macros of a supported USE_LOCAL_WOLFSSL build.
-GOOD_MACROS = ("HAVE_SNI", "OPENSSL_EXTRA")
+GOOD_MACROS = ("HAVE_SNI", "OPENSSL_EXTRA", "OPENSSL_ALL")
 
 
 def _options_h(macros):
@@ -64,6 +65,14 @@ def run_build_script(tmpdir, monkeypatch):
     return run
 
 
+def _declares(cdef, name):
+    return re.search(r"\b%s\s*\(" % name, cdef) is not None
+
+
+def _without(macros, name):
+    return tuple(m for m in macros if m != name)
+
+
 def _cflags(configure_flags):
     for arg in shlex.split(configure_flags):
         if arg.startswith("CFLAGS="):
@@ -82,3 +91,25 @@ def test_make_flags_builds_pic_on_linux(run_build_script, platform):
     ns["get_platform"] = lambda: platform
     flags = ns["make_flags"]("/prefix", False)
     assert "-fPIC" in _cflags(flags), flags
+
+
+def test_supported_local_build_is_accepted(run_build_script):
+    ns = run_build_script()
+    assert _declares(ns["ffi_cdef"], "wolfSSL_ctrl")
+    assert _declares(ns["ffi_cdef"], "wolfSSL_get_peer_certificate")
+
+
+def test_local_build_requires_opensslall(run_build_script):
+    """wolfSSL_ctrl(), SSL_set_mode() and SSL_OP_NO_TICKET are always bound
+    but only exist with OPENSSL_ALL (F-13426).
+    """
+    with pytest.raises(RuntimeError, match="opensslall"):
+        run_build_script(_without(GOOD_MACROS, "OPENSSL_ALL"))
+
+
+def test_local_build_x509small_is_not_opensslextra(run_build_script):
+    """OPENSSL_EXTRA_X509_SMALL alone does not define OPENSSL_EXTRA
+    (F-13426).
+    """
+    with pytest.raises(RuntimeError, match="opensslextra"):
+        run_build_script(("HAVE_SNI", "OPENSSL_EXTRA_X509_SMALL"))

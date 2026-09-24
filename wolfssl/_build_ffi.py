@@ -31,6 +31,7 @@ import wolfssl._openssl as openssl
 import subprocess
 import shlex
 import os
+import re
 import sys
 from ctypes import cdll
 from collections import namedtuple
@@ -259,6 +260,13 @@ def get_libwolfssl_path():
     return None
 
 
+def is_defined(options_str, macro):
+    """ Return True if options.h defines exactly this macro.
+    """
+    pattern = r"^[ \t]*#[ \t]*define[ \t]+" + macro + r"\b"
+    return re.search(pattern, options_str, re.M) is not None
+
+
 def generate_libwolfssl():
     ensure_wolfssl_src(version)
     prefix = local_path("lib/wolfssl/{}/{}".format(
@@ -277,13 +285,19 @@ if local_wolfssl:
     optionsHeaderStr = optionsHeader.read()
     optionsHeader.close()
     # require HAVE_SNI (--enable-sni) in native lib
-    if '#define HAVE_SNI' not in optionsHeaderStr:
+    if not is_defined(optionsHeaderStr, "HAVE_SNI"):
         raise RuntimeError("wolfSSL needs to be compiled with --enable-sni")
 
     # require OPENSSL_EXTRA (--enable-opensslextra) in native lib
-    if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
+    if not is_defined(optionsHeaderStr, "OPENSSL_EXTRA"):
         raise RuntimeError("wolfSSL needs to be compiled with "
             "--enable-opensslextra")
+
+    # require OPENSSL_ALL (--enable-opensslall) in native lib, for
+    # wolfSSL_ctrl(), SSL_set_mode() and SSL_OP_NO_TICKET
+    if not is_defined(optionsHeaderStr, "OPENSSL_ALL"):
+        raise RuntimeError("wolfSSL needs to be compiled with "
+            "--enable-opensslall")
     featureDetection = 1
     libwolfssl_path = get_libwolfssl_path()
     sys.stderr.write("\nDEBUG: Found <wolfssl/options.h>, attempting native "
@@ -303,7 +317,7 @@ else:
 OLDTLS_ENABLED = 0
 
 if featureDetection:
-    OLDTLS_ENABLED = 0 if '#define NO_OLD_TLS' in optionsHeaderStr else 1
+    OLDTLS_ENABLED = 0 if is_defined(optionsHeaderStr, "NO_OLD_TLS") else 1
 
 sys.stderr.write("\nOLDTLS: %d\n" % OLDTLS_ENABLED)
 
