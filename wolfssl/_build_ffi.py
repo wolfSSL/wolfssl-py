@@ -305,6 +305,11 @@ if local_wolfssl:
             not is_defined(optionsHeaderStr, "KEEP_PEER_CERT"):
         raise RuntimeError("wolfSSL needs to be compiled without "
             "NO_KEEP_PEER_CERT")
+
+    # file based cert/key loading APIs are always bound
+    if is_defined(optionsHeaderStr, "NO_FILESYSTEM"):
+        raise RuntimeError("wolfSSL needs to be compiled with filesystem "
+            "support (without --disable-filesystem)")
     featureDetection = 1
     libwolfssl_path = get_libwolfssl_path()
     sys.stderr.write("\nDEBUG: Found <wolfssl/options.h>, attempting native "

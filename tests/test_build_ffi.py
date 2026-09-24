@@ -129,3 +129,11 @@ def test_local_build_keep_peer_cert_overrides_no_keep(run_build_script):
     ns = run_build_script(
         GOOD_MACROS + ("NO_KEEP_PEER_CERT", "KEEP_PEER_CERT"))
     assert _declares(ns["ffi_cdef"], "wolfSSL_get_peer_certificate")
+
+
+def test_local_build_rejects_no_filesystem(run_build_script):
+    """The file based cert/key loading APIs are always bound but only exist
+    without NO_FILESYSTEM (F-12664).
+    """
+    with pytest.raises(RuntimeError, match="filesystem"):
+        run_build_script(GOOD_MACROS + ("NO_FILESYSTEM",))
