@@ -22,7 +22,10 @@
 
 # pylint: disable=missing-docstring, redefined-outer-name, import-error
 
+import gc
+
 import pytest
+from wolfssl import _methods
 from wolfssl._methods import (WolfSSLMethod, PROTOCOL_SSLv3, PROTOCOL_SSLv23,
                               PROTOCOL_TLS, PROTOCOL_TLSv1, PROTOCOL_TLSv1_1,
                               PROTOCOL_TLSv1_2, PROTOCOL_TLSv1_3)
@@ -70,3 +73,26 @@ def test_supported_method(supported_method):
     assert isinstance(server, WolfSSLMethod)
     assert client.native_object != _ffi.NULL
     assert server.native_object != _ffi.NULL
+
+
+def test_method_is_freed_through_stable_shim(monkeypatch):
+    """The method is freed through a binding whose signature does not
+    depend on the wolfSSL allocator configuration (F-12662).
+    """
+    real_lib = _methods._lib
+    freed = []
+
+    class _Lib(object):
+        def __getattr__(self, name):
+            return getattr(real_lib, name)
+
+        def wolfsslpy_method_free(self, native_object):
+            freed.append(native_object)
+            real_lib.wolfsslpy_method_free(native_object)
+
+    method = WolfSSLMethod(PROTOCOL_TLSv1_2, False)
+    native_object = method.native_object
+    monkeypatch.setattr(_methods, "_lib", _Lib())
+    del method
+    gc.collect()
+    assert freed == [native_object]

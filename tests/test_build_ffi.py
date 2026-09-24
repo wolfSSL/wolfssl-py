@@ -25,6 +25,8 @@
 import os
 import re
 import shlex
+import subprocess
+import sysconfig
 
 import pytest
 
@@ -75,6 +77,16 @@ def _declares(cdef, name):
 
 def _without(macros, name):
     return tuple(m for m in macros if m != name)
+
+
+def _bundled_prefix():
+    platform = pytest.importorskip("distutils.util").get_platform()
+    prefix = os.path.join(REPO_ROOT, "lib", "wolfssl", platform,
+                          __wolfssl_version__)
+    if not os.path.isfile(os.path.join(prefix, "include", "wolfssl",
+                                       "options.h")):
+        pytest.skip("bundled wolfSSL is not built")
+    return prefix
 
 
 def _cflags(configure_flags):
@@ -161,13 +173,53 @@ def test_bundled_options_pass_local_detection(run_build_script):
     """Detection on the bundled build's options.h agrees with the defaults
     used when building it (F-12663).
     """
-    platform = pytest.importorskip("distutils.util").get_platform()
-    options_path = os.path.join(REPO_ROOT, "lib", "wolfssl", platform,
-                                __wolfssl_version__, "include", "wolfssl",
+    options_path = os.path.join(_bundled_prefix(), "include", "wolfssl",
                                 "options.h")
-    if not os.path.isfile(options_path):
-        pytest.skip("bundled wolfSSL is not built")
     with open(options_path) as options:
         ns = run_build_script(options_h=options.read())
     assert ns["CRL_ENABLED"] == 1
     assert ns["OLDTLS_ENABLED"] == 0
+
+
+def test_cdef_does_not_bind_config_dependent_wolfssl_free(run_build_script):
+    """wolfSSL_Free() takes extra arguments with WOLFSSL_DEBUG_MEMORY or
+    WOLFSSL_STATIC_MEMORY. Methods are freed through XFREE instead
+    (F-12662).
+    """
+    ns = run_build_script()
+    assert not _declares(ns["ffi_cdef"], "wolfSSL_Free")
+    assert re.search(
+        r"XFREE\(\s*\w+\s*,\s*NULL\s*,\s*DYNAMIC_TYPE_METHOD\s*\)",
+        ns["ffi_source"])
+
+
+@pytest.mark.parametrize("macros", [
+    ("WOLFSSL_DEBUG_MEMORY",),
+    ("WOLFSSL_STATIC_MEMORY",),
+    ("WOLFSSL_STATIC_MEMORY", "WOLFSSL_DEBUG_MEMORY")])
+def test_ffi_source_compiles_with_alternate_allocator(run_build_script,
+                                                     tmpdir, macros):
+    """The generated C compiles when the wolfSSL allocator API differs
+    from the default (F-12662).
+    """
+    prefix = _bundled_prefix()
+    py_include = sysconfig.get_paths()["include"]
+    if not os.path.isfile(os.path.join(py_include, "Python.h")):
+        pytest.skip("Python headers are not installed")
+    with open(os.path.join(prefix, "include", "wolfssl", "options.h")) as f:
+        options_h = f.read()
+    options_h += "".join("#define %s\n" % m for m in macros)
+    ns = run_build_script(options_h=options_h)
+    c_file = str(tmpdir.join("_ffi.c"))
+    ns["ffi"].emit_c_code(c_file)
+    cmd = ["cc", "-fsyntax-only",
+           "-I" + str(tmpdir.join("include")),
+           "-I" + os.path.join(prefix, "include"),
+           "-I" + py_include, c_file]
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+    except OSError:
+        pytest.skip("no C compiler")
+    out = proc.communicate()[0].decode("utf-8", "replace")
+    assert proc.returncode == 0, out

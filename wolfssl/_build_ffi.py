@@ -358,6 +358,12 @@ source = """
 
     int OLDTLS_ENABLED = """ + str(OLDTLS_ENABLED) + """;
     int CRL_ENABLED = """ + str(CRL_ENABLED) + """;
+
+    /* Free a WOLFSSL_METHOD the way wolfSSL allocates it. */
+    static void wolfsslpy_method_free(WOLFSSL_METHOD* method)
+    {
+        XFREE(method, NULL, DYNAMIC_TYPE_METHOD);
+    }
 """
 ffi_source = source + openssl.source
 
@@ -431,7 +437,7 @@ cdef = """
     /*
      * Memory
      */
-    void  wolfSSL_Free(void*);
+    void  wolfsslpy_method_free(WOLFSSL_METHOD*);
     void  wolfSSL_OPENSSL_free(void*);
 
     /*

@@ -51,7 +51,7 @@ _DYNAMIC_TYPE_METHOD = 11
 
 
 def _native_free(native_object, dynamic_type):
-    _lib.wolfSSL_Free(native_object)
+    _lib.wolfsslpy_method_free(native_object)
 
 
 class WolfSSLMethod(object):  # pylint: disable=too-few-public-methods
