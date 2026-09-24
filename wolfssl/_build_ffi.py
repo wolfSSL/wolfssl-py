@@ -298,6 +298,13 @@ if local_wolfssl:
     if not is_defined(optionsHeaderStr, "OPENSSL_ALL"):
         raise RuntimeError("wolfSSL needs to be compiled with "
             "--enable-opensslall")
+
+    # peer cert APIs need KEEP_PEER_CERT; settings.h sets it for
+    # OPENSSL_EXTRA builds unless NO_KEEP_PEER_CERT is defined
+    if is_defined(optionsHeaderStr, "NO_KEEP_PEER_CERT") and \
+            not is_defined(optionsHeaderStr, "KEEP_PEER_CERT"):
+        raise RuntimeError("wolfSSL needs to be compiled without "
+            "NO_KEEP_PEER_CERT")
     featureDetection = 1
     libwolfssl_path = get_libwolfssl_path()
     sys.stderr.write("\nDEBUG: Found <wolfssl/options.h>, attempting native "

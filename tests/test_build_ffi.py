@@ -33,7 +33,8 @@ import wolfssl
 BUILD_SCRIPT = os.path.join(
     os.path.dirname(os.path.abspath(wolfssl.__file__)), "_build_ffi.py")
 
-# options.h macros of a supported USE_LOCAL_WOLFSSL build.
+# options.h macros of a supported USE_LOCAL_WOLFSSL build. KEEP_PEER_CERT
+# is left out: settings.h derives it, so configure output often lacks it.
 GOOD_MACROS = ("HAVE_SNI", "OPENSSL_EXTRA", "OPENSSL_ALL")
 
 
@@ -113,3 +114,18 @@ def test_local_build_x509small_is_not_opensslextra(run_build_script):
     """
     with pytest.raises(RuntimeError, match="opensslextra"):
         run_build_script(("HAVE_SNI", "OPENSSL_EXTRA_X509_SMALL"))
+
+
+def test_local_build_rejects_no_keep_peer_cert(run_build_script):
+    """wolfSSL_get_peer_certificate() and wolfSSL_X509_get_subjectCN() are
+    always bound but only exist with KEEP_PEER_CERT (F-11777).
+    """
+    with pytest.raises(RuntimeError, match="KEEP_PEER_CERT"):
+        run_build_script(GOOD_MACROS + ("NO_KEEP_PEER_CERT",))
+
+
+def test_local_build_keep_peer_cert_overrides_no_keep(run_build_script):
+    """settings.h never removes an explicit KEEP_PEER_CERT (F-11777)."""
+    ns = run_build_script(
+        GOOD_MACROS + ("NO_KEEP_PEER_CERT", "KEEP_PEER_CERT"))
+    assert _declares(ns["ffi_cdef"], "wolfSSL_get_peer_certificate")
