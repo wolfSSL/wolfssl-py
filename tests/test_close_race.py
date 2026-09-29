@@ -227,4 +227,4 @@ def test_operation_after_close_does_not_use_freed_session(make_socket, op):
         _OPS[op][1](sock)
     except (ValueError, wolfssl.SSLError):
         pass
-    assert [c for c in lib.calls if c[1] == _addr(_SESSION)] == []
+    assert lib.calls == []

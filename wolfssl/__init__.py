@@ -561,10 +561,10 @@ class SSLSocket(object):
         Sets the SNI hostname, wraps native wolfSSL_UseSNI()
         """
 
+        ssl = self._check_closed("use_sni")
         sni = t2b(server_hostname)
 
-        ret = _lib.wolfSSL_UseSNI(self.native_object, 0,
-                                  sni, len(sni))
+        ret = _lib.wolfSSL_UseSNI(ssl, 0, sni, len(sni))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL SNI")
@@ -575,7 +575,8 @@ class SSLSocket(object):
         """
         if not _lib.CRL_ENABLED:
             raise NotImplementedError("wolfSSL not built with CRL support")
-        ret = _lib.wolfSSL_EnableCRL(self.native_object, options)
+        ssl = self._check_closed("enable_crl")
+        ret = _lib.wolfSSL_EnableCRL(ssl, options)
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to enable CRL ")
@@ -586,7 +587,8 @@ class SSLSocket(object):
         """
         if not _lib.CRL_ENABLED:
             raise NotImplementedError("wolfSSL not built with CRL support")
-        ret = _lib.wolfSSL_LoadCRLFile(self.native_object,
+        ssl = self._check_closed("load_crl_file")
+        ret = _lib.wolfSSL_LoadCRLFile(ssl,
                                        t2b(path) if path else _ffi.NULL,
                                        filetype)
 
@@ -796,13 +798,12 @@ class SSLSocket(object):
         return sock
 
     def add_peer(self, addr):
+        ssl = self._check_closed("add_peer")
         peerAddr = _lib.wolfSSL_dtls_create_peer(addr[1], t2b(addr[0]))
         if peerAddr == _ffi.NULL:
             raise SSLError("Failed to create peer")
         try:
-            ret = _lib.wolfSSL_dtls_set_peer(
-                self.native_object, peerAddr,
-                _SOCKADDR_SZ)
+            ret = _lib.wolfSSL_dtls_set_peer(ssl, peerAddr, _SOCKADDR_SZ)
             if ret != _SSL_SUCCESS:
                 raise SSLError(
                     "Unable to set dtls peer."
