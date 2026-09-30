@@ -29,6 +29,7 @@ import sys
 import threading
 
 import wolfssl
+from wolfssl._ffi import lib as _lib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "examples"))
 import client as client_example  # noqa: E402
@@ -151,9 +152,13 @@ def test_default_invocation_end_to_end():
         line = server.stdout.readline().decode()
         assert "Server listening" in line, line
 
+        client_args = [sys.executable, "-u",
+                       os.path.join("examples", "client.py"), "-p", str(port)]
+        # The example enables CRL unless -C is given.
+        if not _lib.CRL_ENABLED:
+            client_args.append("-C")
         client = subprocess.Popen(
-            [sys.executable, "-u", os.path.join("examples", "client.py"),
-             "-p", str(port)],
+            client_args,
             cwd=root, env=env, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
         # Watchdog instead of communicate(timeout=...), which is 3.3+.

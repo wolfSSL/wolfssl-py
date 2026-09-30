@@ -483,6 +483,9 @@ class SSLSocket(object):
         self.native_object = _lib.wolfSSL_new(self.context.native_object)
         if self.native_object == _ffi.NULL:
             raise MemoryError("Unable to allocate ssl object")
+        # Freed when the last reference goes, including the one held by a
+        # native call still running in another thread.
+        self.native_object = _ffi.gc(self.native_object, _lib.wolfSSL_free)
 
         ret = _lib.wolfSSL_set_fd(self.native_object, self._sock.fileno())
         if ret != _SSL_SUCCESS:
@@ -516,13 +519,11 @@ class SSLSocket(object):
         self._release_native_object()
 
     def _release_native_object(self):
-        if getattr(self, 'native_object', None) is not None and self.native_object != _ffi.NULL:
-            _lib.wolfSSL_free(self.native_object)
-            self.native_object = _ffi.NULL
+        self.native_object = _ffi.NULL
 
     def pending(self):
-        self._check_closed("pending")
-        return _lib.wolfSSL_pending(self.native_object)
+        ssl = self._check_closed("pending")
+        return _lib.wolfSSL_pending(ssl)
 
     @property
     def context(self):
@@ -542,8 +543,10 @@ class SSLSocket(object):
                                   self.__class__.__name__)
 
     def _check_closed(self, call=None):
-        if self.native_object == _ffi.NULL:
+        ssl = self.native_object
+        if ssl == _ffi.NULL:
             raise ValueError("%s on closed or unwrapped secure channel" % call)
+        return ssl
 
     def _check_connected(self):
         if not self._connected:
@@ -558,10 +561,10 @@ class SSLSocket(object):
         Sets the SNI hostname, wraps native wolfSSL_UseSNI()
         """
 
+        ssl = self._check_closed("use_sni")
         sni = t2b(server_hostname)
 
-        ret = _lib.wolfSSL_UseSNI(self.native_object, 0,
-                                  sni, len(sni))
+        ret = _lib.wolfSSL_UseSNI(ssl, 0, sni, len(sni))
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to set wolfSSL SNI")
@@ -570,7 +573,10 @@ class SSLSocket(object):
         """
         Enables CRL certificate revocation
         """
-        ret = _lib.wolfSSL_EnableCRL(self.native_object, options)
+        if not _lib.CRL_ENABLED:
+            raise NotImplementedError("wolfSSL not built with CRL support")
+        ssl = self._check_closed("enable_crl")
+        ret = _lib.wolfSSL_EnableCRL(ssl, options)
 
         if ret != _SSL_SUCCESS:
             raise SSLError("Unable to enable CRL ")
@@ -579,7 +585,10 @@ class SSLSocket(object):
         """
         Load CRL certificate revocation
         """
-        ret = _lib.wolfSSL_LoadCRLFile(self.native_object,
+        if not _lib.CRL_ENABLED:
+            raise NotImplementedError("wolfSSL not built with CRL support")
+        ssl = self._check_closed("load_crl_file")
+        ret = _lib.wolfSSL_LoadCRLFile(ssl,
                                        t2b(path) if path else _ffi.NULL,
                                        filetype)
 
@@ -591,7 +600,7 @@ class SSLSocket(object):
         Write DATA to the underlying secure channel.
         Returns number of bytes of DATA actually transmitted.
         """
-        self._check_closed("write")
+        ssl = self._check_closed("write")
         # Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
@@ -608,10 +617,10 @@ class SSLSocket(object):
                 data = t2b(data)
 
         ret = _lib.wolfSSL_write(
-            self.native_object, data, len(data))
+            ssl, data, len(data))
         if ret <= 0:
             err = _lib.wolfSSL_get_error(
-                self.native_object, 0)
+                ssl, 0)
             if err == _SSL_ERROR_WANT_WRITE:
                 raise SSLWantWriteError()
             elif err == _SSL_ERROR_WANT_READ:
@@ -663,7 +672,7 @@ class SSLSocket(object):
         Read up to LENGTH bytes and return them.
         Return zero-length string on EOF.
         """
-        self._check_closed("read")
+        ssl = self._check_closed("read")
         # Check connected if not DTLS
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
@@ -676,10 +685,10 @@ class SSLSocket(object):
                              "read() on %s" % self.__class__)
 
         data = _ffi.new('byte[%d]' % length)
-        length = _lib.wolfSSL_read(self.native_object, data, length)
+        length = _lib.wolfSSL_read(ssl, data, length)
 
         if length < 0:
-            err = _lib.wolfSSL_get_error(self.native_object, 0)
+            err = _lib.wolfSSL_get_error(ssl, 0)
             if err == _SSL_ERROR_WANT_READ:
                 raise SSLWantReadError()
             elif err == _SSL_ERROR_WANT_WRITE:
@@ -702,7 +711,7 @@ class SSLSocket(object):
         Read nbytes bytes and place into buffer. If nbytes is 0, read up
         to full size of buffer.
         """
-        self._check_closed("read")
+        ssl = self._check_closed("read")
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
         # Drive the DTLS handshake only until it has completed.
@@ -721,10 +730,10 @@ class SSLSocket(object):
             return 0
 
         data = _ffi.from_buffer(buffer)
-        length = _lib.wolfSSL_read(self.native_object, data, nbytes)
+        length = _lib.wolfSSL_read(ssl, data, nbytes)
         _ffi.release(data)
         if length < 0:
-            err = _lib.wolfSSL_get_error(self.native_object, 0)
+            err = _lib.wolfSSL_get_error(ssl, 0)
             if err == _SSL_ERROR_WANT_READ:
                 raise SSLWantReadError()
             elif err == _SSL_ERROR_WANT_WRITE:
@@ -755,10 +764,11 @@ class SSLSocket(object):
                                   "%s" % self.__class__)
 
     def shutdown(self, how):
-        if self.native_object != _ffi.NULL:
-            ret = _lib.wolfSSL_shutdown(self.native_object)
+        ssl = self.native_object
+        if ssl != _ffi.NULL:
+            ret = _lib.wolfSSL_shutdown(ssl)
             if ret == 0:
-                _lib.wolfSSL_shutdown(self.native_object)
+                _lib.wolfSSL_shutdown(ssl)
             self._release_native_object()
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._sock.shutdown(how)
@@ -768,12 +778,13 @@ class SSLSocket(object):
         Unwraps the underlying OS socket from the SSL/TLS connection.
         Returns the wrapped OS socket.
         """
-        if self.native_object != _ffi.NULL:
+        ssl = self.native_object
+        if ssl != _ffi.NULL:
             if self._connected:
                 # Single-step shutdown is intentional; any
                 # bidirectional close_notify exchange is the
                 # caller's responsibility on the raw socket.
-                _lib.wolfSSL_shutdown(self.native_object)
+                _lib.wolfSSL_shutdown(ssl)
             self._release_native_object()
 
         sock = socket(family=self._sock.family,
@@ -787,13 +798,12 @@ class SSLSocket(object):
         return sock
 
     def add_peer(self, addr):
+        ssl = self._check_closed("add_peer")
         peerAddr = _lib.wolfSSL_dtls_create_peer(addr[1], t2b(addr[0]))
         if peerAddr == _ffi.NULL:
             raise SSLError("Failed to create peer")
         try:
-            ret = _lib.wolfSSL_dtls_set_peer(
-                self.native_object, peerAddr,
-                _SOCKADDR_SZ)
+            ret = _lib.wolfSSL_dtls_set_peer(ssl, peerAddr, _SOCKADDR_SZ)
             if ret != _SSL_SUCCESS:
                 raise SSLError(
                     "Unable to set dtls peer."
@@ -805,17 +815,17 @@ class SSLSocket(object):
         """
         Perform a TLS/SSL handshake.
         """
-        self._check_closed("do_handshake")
+        ssl = self._check_closed("do_handshake")
         if self._context.protocol < PROTOCOL_DTLSv1:
             self._check_connected()
 
         if self._server_side:
-            ret = _lib.wolfSSL_accept(self.native_object)
+            ret = _lib.wolfSSL_accept(ssl)
         else:
-            ret = _lib.wolfSSL_connect(self.native_object)
+            ret = _lib.wolfSSL_connect(ssl)
 
         if ret != _SSL_SUCCESS:
-            err = _lib.wolfSSL_get_error(self.native_object, 0)
+            err = _lib.wolfSSL_get_error(ssl, 0)
             if err == _SSL_ERROR_WANT_READ:
                 raise SSLWantReadError()
             elif err == _SSL_ERROR_WANT_WRITE:
@@ -833,7 +843,7 @@ class SSLSocket(object):
 
                 # get alert code and string to put in exception msg
                 alertHistoryPtr = _ffi.new("WOLFSSL_ALERT_HISTORY*")
-                alertRet = _lib.wolfSSL_get_alert_history(self.native_object,
+                alertRet = _lib.wolfSSL_get_alert_history(ssl,
                                                           alertHistoryPtr)
                 if alertRet == _SSL_SUCCESS:
                     alertHistory = alertHistoryPtr[0]
@@ -917,10 +927,11 @@ class SSLSocket(object):
         Returns a WolfSSLX509 object representing the peer's certificate,
         or None if the peer did not present one (or there is no session).
         """
-        if self.native_object == _ffi.NULL:
+        ssl = self.native_object
+        if ssl == _ffi.NULL:
             return None
 
-        x509 = _lib.wolfSSL_get_peer_certificate(self.native_object)
+        x509 = _lib.wolfSSL_get_peer_certificate(ssl)
         if x509 == _ffi.NULL:
             return None
 
@@ -946,21 +957,22 @@ class SSLSocket(object):
         """
         Returns the version of the protocol used in the connection.
         """
-        self._check_closed("version")
+        ssl = self._check_closed("version")
         return _ffi.string(
             _lib.wolfSSL_get_version(
-                self.native_object)).decode("ascii")
+                ssl)).decode("ascii")
 
     # The following functions expose functionality of the underlying
     # Socket object. These are also exposed through Python's ssl module
     # API and are provided here for compatibility.
     def close(self):
-        if self.native_object != _ffi.NULL:
+        ssl = self.native_object
+        if ssl != _ffi.NULL:
             if self._connected:
                 # Single-step shutdown is intentional here; the
                 # socket is about to be closed so a bidirectional
                 # close_notify exchange is not required.
-                _lib.wolfSSL_shutdown(self.native_object)
+                _lib.wolfSSL_shutdown(ssl)
             self._release_native_object()
         self._sock.close()
 

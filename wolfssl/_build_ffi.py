@@ -31,6 +31,7 @@ import wolfssl._openssl as openssl
 import subprocess
 import shlex
 import os
+import re
 import sys
 from ctypes import cdll
 from collections import namedtuple
@@ -145,8 +146,9 @@ def make_flags(prefix, debug):
     # defaults to None (that eval to False)
     disable_scr = os.getenv("WOLFSSLPY_DISABLE_SCR")
 
-    if get_platform() in ["linux-x86_64", "linux-i686"]:
-        cflags.append("-fpic")
+    # The static lib is linked into the shared extension.
+    if get_platform().startswith("linux"):
+        cflags.append("-fPIC")
 
     # install location
     flags.append("--prefix={}".format(prefix))
@@ -258,6 +260,13 @@ def get_libwolfssl_path():
     return None
 
 
+def is_defined(options_str, macro):
+    """ Return True if options.h defines exactly this macro.
+    """
+    pattern = r"^[ \t]*#[ \t]*define[ \t]+" + macro + r"\b"
+    return re.search(pattern, options_str, re.M) is not None
+
+
 def generate_libwolfssl():
     ensure_wolfssl_src(version)
     prefix = local_path("lib/wolfssl/{}/{}".format(
@@ -276,13 +285,31 @@ if local_wolfssl:
     optionsHeaderStr = optionsHeader.read()
     optionsHeader.close()
     # require HAVE_SNI (--enable-sni) in native lib
-    if '#define HAVE_SNI' not in optionsHeaderStr:
+    if not is_defined(optionsHeaderStr, "HAVE_SNI"):
         raise RuntimeError("wolfSSL needs to be compiled with --enable-sni")
 
     # require OPENSSL_EXTRA (--enable-opensslextra) in native lib
-    if '#define OPENSSL_EXTRA' not in optionsHeaderStr:
+    if not is_defined(optionsHeaderStr, "OPENSSL_EXTRA"):
         raise RuntimeError("wolfSSL needs to be compiled with "
             "--enable-opensslextra")
+
+    # require OPENSSL_ALL (--enable-opensslall) in native lib, for
+    # wolfSSL_ctrl(), SSL_set_mode() and SSL_OP_NO_TICKET
+    if not is_defined(optionsHeaderStr, "OPENSSL_ALL"):
+        raise RuntimeError("wolfSSL needs to be compiled with "
+            "--enable-opensslall")
+
+    # peer cert APIs need KEEP_PEER_CERT; settings.h sets it for
+    # OPENSSL_EXTRA builds unless NO_KEEP_PEER_CERT is defined
+    if is_defined(optionsHeaderStr, "NO_KEEP_PEER_CERT") and \
+            not is_defined(optionsHeaderStr, "KEEP_PEER_CERT"):
+        raise RuntimeError("wolfSSL needs to be compiled without "
+            "NO_KEEP_PEER_CERT")
+
+    # file based cert/key loading APIs are always bound
+    if is_defined(optionsHeaderStr, "NO_FILESYSTEM"):
+        raise RuntimeError("wolfSSL needs to be compiled with filesystem "
+            "support (without --disable-filesystem)")
     featureDetection = 1
     libwolfssl_path = get_libwolfssl_path()
     sys.stderr.write("\nDEBUG: Found <wolfssl/options.h>, attempting native "
@@ -300,11 +327,14 @@ else:
 
 # default values
 OLDTLS_ENABLED = 0
+CRL_ENABLED = 1
 
 if featureDetection:
-    OLDTLS_ENABLED = 0 if '#define NO_OLD_TLS' in optionsHeaderStr else 1
+    OLDTLS_ENABLED = 0 if is_defined(optionsHeaderStr, "NO_OLD_TLS") else 1
+    CRL_ENABLED = 1 if is_defined(optionsHeaderStr, "HAVE_CRL") else 0
 
 sys.stderr.write("\nOLDTLS: %d\n" % OLDTLS_ENABLED)
+sys.stderr.write("\nCRL: %d\n" % CRL_ENABLED)
 
 WolfFunction = namedtuple("WolfFunction", ["name", "native_sig", "ossl_sig"])
 # Depending on how wolfSSL was configured, the functions below may or may not be
@@ -327,6 +357,13 @@ source = """
     #include <wolfssl/ssl.h>
 
     int OLDTLS_ENABLED = """ + str(OLDTLS_ENABLED) + """;
+    int CRL_ENABLED = """ + str(CRL_ENABLED) + """;
+
+    /* Free a WOLFSSL_METHOD the way wolfSSL allocates it. */
+    static void wolfsslpy_method_free(WOLFSSL_METHOD* method)
+    {
+        XFREE(method, NULL, DYNAMIC_TYPE_METHOD);
+    }
 """
 ffi_source = source + openssl.source
 
@@ -363,6 +400,7 @@ cdef = """
     typedef unsigned int word32;
 
     extern int OLDTLS_ENABLED;
+    extern int CRL_ENABLED;
 
     /*
      * Opaque structs.
@@ -399,7 +437,7 @@ cdef = """
     /*
      * Memory
      */
-    void  wolfSSL_Free(void*);
+    void  wolfsslpy_method_free(WOLFSSL_METHOD*);
     void  wolfSSL_OPENSSL_free(void*);
 
     /*
@@ -497,8 +535,6 @@ cdef += """
     int           wolfSSL_set_tlsext_host_name(WOLFSSL*, const char*);
     long          wolfSSL_ctrl(WOLFSSL*, int, long, void*);
     void          wolfSSL_set_connect_state(WOLFSSL*);
-    int           wolfSSL_EnableCRL(WOLFSSL*, int);
-    int           wolfSSL_LoadCRLFile(WOLFSSL*, const char*, int);
     void*         wolfSSL_dtls_create_peer(int, char*);
     int           wolfSSL_dtls_free_peer(void*);
     int           wolfSSL_dtls_set_peer(WOLFSSL*, void*, unsigned int);
@@ -575,6 +611,12 @@ cdef += """
     const char*   wolfSSL_OBJ_nid2sn(int n);
     int           wolfSSL_OBJ_txt2nid(const char*);
 """
+
+if CRL_ENABLED:
+    cdef += """
+    int           wolfSSL_EnableCRL(WOLFSSL*, int);
+    int           wolfSSL_LoadCRLFile(WOLFSSL*, const char*, int);
+    """
 
 for func in optional_funcs:
     cdef += "{};".format(func.native_sig)

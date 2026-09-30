@@ -1,0 +1,225 @@
+# -*- coding: utf-8 -*-
+#
+# test_build_ffi.py
+#
+# Copyright (C) 2006-2026 wolfSSL Inc.
+#
+# This file is part of wolfSSL.
+#
+# wolfSSL is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# wolfSSL is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+
+# pylint: disable=missing-docstring, redefined-outer-name
+
+import os
+import re
+import shlex
+import subprocess
+import sysconfig
+
+import pytest
+
+import wolfssl
+from wolfssl._version import __wolfssl_version__
+
+BUILD_SCRIPT = os.path.join(
+    os.path.dirname(os.path.abspath(wolfssl.__file__)), "_build_ffi.py")
+REPO_ROOT = os.path.dirname(os.path.dirname(BUILD_SCRIPT))
+
+# options.h macros of a supported USE_LOCAL_WOLFSSL build. KEEP_PEER_CERT
+# is left out: settings.h derives it, so configure output often lacks it.
+GOOD_MACROS = ("HAVE_SNI", "OPENSSL_EXTRA", "OPENSSL_ALL", "HAVE_CRL")
+
+
+def _options_h(macros):
+    lines = ["#ifndef WOLFSSL_OPTIONS_H", "#define WOLFSSL_OPTIONS_H"]
+    for macro in macros:
+        lines.append("#undef  %s" % macro)
+        lines.append("#define %s" % macro)
+    lines.append("#endif")
+    return "\n".join(lines) + "\n"
+
+
+@pytest.fixture
+def run_build_script(tmpdir, monkeypatch):
+    """Run _build_ffi.py like cffi's setuptools hook does, against a fake
+    USE_LOCAL_WOLFSSL prefix that only holds options.h. No C is compiled
+    and no wolfSSL is built."""
+    pytest.importorskip("distutils.util")
+
+    def run(macros=GOOD_MACROS, options_h=None):
+        if options_h is None:
+            options_h = _options_h(macros)
+        tmpdir.ensure("include", "wolfssl", "options.h").write(options_h)
+        monkeypatch.setenv("USE_LOCAL_WOLFSSL", str(tmpdir))
+        namespace = {"__name__": "__cffi__", "__file__": BUILD_SCRIPT}
+        with open(BUILD_SCRIPT) as script:
+            code = compile(script.read(), BUILD_SCRIPT, "exec")
+        exec(code, namespace)
+        return namespace
+    return run
+
+
+def _declares(cdef, name):
+    return re.search(r"\b%s\s*\(" % name, cdef) is not None
+
+
+def _without(macros, name):
+    return tuple(m for m in macros if m != name)
+
+
+def _bundled_prefix():
+    platform = pytest.importorskip("distutils.util").get_platform()
+    prefix = os.path.join(REPO_ROOT, "lib", "wolfssl", platform,
+                          __wolfssl_version__)
+    if not os.path.isfile(os.path.join(prefix, "include", "wolfssl",
+                                       "options.h")):
+        pytest.skip("bundled wolfSSL is not built")
+    return prefix
+
+
+def _cflags(configure_flags):
+    for arg in shlex.split(configure_flags):
+        if arg.startswith("CFLAGS="):
+            return arg[len("CFLAGS="):].split()
+    return []
+
+
+@pytest.mark.parametrize("platform", [
+    "linux-x86_64", "linux-i686", "linux-aarch64", "linux-armv7l",
+    "linux-ppc64le", "linux-s390x", "linux-riscv64"])
+def test_make_flags_builds_pic_on_linux(run_build_script, platform):
+    """The bundled static wolfSSL is linked into the shared extension, so
+    it must be position independent on every Linux architecture (F-10706).
+    """
+    ns = run_build_script()
+    ns["get_platform"] = lambda: platform
+    flags = ns["make_flags"]("/prefix", False)
+    assert "-fPIC" in _cflags(flags), flags
+
+
+def test_supported_local_build_is_accepted(run_build_script):
+    ns = run_build_script()
+    assert _declares(ns["ffi_cdef"], "wolfSSL_ctrl")
+    assert _declares(ns["ffi_cdef"], "wolfSSL_get_peer_certificate")
+
+
+def test_local_build_requires_opensslall(run_build_script):
+    """wolfSSL_ctrl(), SSL_set_mode() and SSL_OP_NO_TICKET are always bound
+    but only exist with OPENSSL_ALL (F-13426).
+    """
+    with pytest.raises(RuntimeError, match="opensslall"):
+        run_build_script(_without(GOOD_MACROS, "OPENSSL_ALL"))
+
+
+def test_local_build_x509small_is_not_opensslextra(run_build_script):
+    """OPENSSL_EXTRA_X509_SMALL alone does not define OPENSSL_EXTRA
+    (F-13426).
+    """
+    with pytest.raises(RuntimeError, match="opensslextra"):
+        run_build_script(("HAVE_SNI", "OPENSSL_EXTRA_X509_SMALL"))
+
+
+def test_local_build_rejects_no_keep_peer_cert(run_build_script):
+    """wolfSSL_get_peer_certificate() and wolfSSL_X509_get_subjectCN() are
+    always bound but only exist with KEEP_PEER_CERT (F-11777).
+    """
+    with pytest.raises(RuntimeError, match="KEEP_PEER_CERT"):
+        run_build_script(GOOD_MACROS + ("NO_KEEP_PEER_CERT",))
+
+
+def test_local_build_keep_peer_cert_overrides_no_keep(run_build_script):
+    """settings.h never removes an explicit KEEP_PEER_CERT (F-11777)."""
+    ns = run_build_script(
+        GOOD_MACROS + ("NO_KEEP_PEER_CERT", "KEEP_PEER_CERT"))
+    assert _declares(ns["ffi_cdef"], "wolfSSL_get_peer_certificate")
+
+
+def test_local_build_rejects_no_filesystem(run_build_script):
+    """The file based cert/key loading APIs are always bound but only exist
+    without NO_FILESYSTEM (F-12664).
+    """
+    with pytest.raises(RuntimeError, match="filesystem"):
+        run_build_script(GOOD_MACROS + ("NO_FILESYSTEM",))
+
+
+def test_crl_bindings_omitted_without_have_crl(run_build_script):
+    """The CRL APIs only exist with HAVE_CRL, which is optional (F-12663)."""
+    ns = run_build_script(_without(GOOD_MACROS, "HAVE_CRL"))
+    assert ns["CRL_ENABLED"] == 0
+    assert not _declares(ns["ffi_cdef"], "wolfSSL_EnableCRL")
+    assert not _declares(ns["ffi_cdef"], "wolfSSL_LoadCRLFile")
+
+
+def test_crl_bindings_present_with_have_crl(run_build_script):
+    ns = run_build_script()
+    assert ns["CRL_ENABLED"] == 1
+    assert _declares(ns["ffi_cdef"], "wolfSSL_EnableCRL")
+    assert _declares(ns["ffi_cdef"], "wolfSSL_LoadCRLFile")
+
+
+def test_bundled_options_pass_local_detection(run_build_script):
+    """Detection on the bundled build's options.h agrees with the defaults
+    used when building it (F-12663).
+    """
+    options_path = os.path.join(_bundled_prefix(), "include", "wolfssl",
+                                "options.h")
+    with open(options_path) as options:
+        ns = run_build_script(options_h=options.read())
+    assert ns["CRL_ENABLED"] == 1
+    assert ns["OLDTLS_ENABLED"] == 0
+
+
+def test_cdef_does_not_bind_config_dependent_wolfssl_free(run_build_script):
+    """wolfSSL_Free() takes extra arguments with WOLFSSL_DEBUG_MEMORY or
+    WOLFSSL_STATIC_MEMORY. Methods are freed through XFREE instead
+    (F-12662).
+    """
+    ns = run_build_script()
+    assert not _declares(ns["ffi_cdef"], "wolfSSL_Free")
+    assert re.search(
+        r"XFREE\(\s*\w+\s*,\s*NULL\s*,\s*DYNAMIC_TYPE_METHOD\s*\)",
+        ns["ffi_source"])
+
+
+@pytest.mark.parametrize("macros", [
+    ("WOLFSSL_DEBUG_MEMORY",),
+    ("WOLFSSL_STATIC_MEMORY",),
+    ("WOLFSSL_STATIC_MEMORY", "WOLFSSL_DEBUG_MEMORY")])
+def test_ffi_source_compiles_with_alternate_allocator(run_build_script,
+                                                     tmpdir, macros):
+    """The generated C compiles when the wolfSSL allocator API differs
+    from the default (F-12662).
+    """
+    prefix = _bundled_prefix()
+    py_include = sysconfig.get_paths()["include"]
+    if not os.path.isfile(os.path.join(py_include, "Python.h")):
+        pytest.skip("Python headers are not installed")
+    with open(os.path.join(prefix, "include", "wolfssl", "options.h")) as f:
+        options_h = f.read()
+    options_h += "".join("#define %s\n" % m for m in macros)
+    ns = run_build_script(options_h=options_h)
+    c_file = str(tmpdir.join("_ffi.c"))
+    ns["ffi"].emit_c_code(c_file)
+    cmd = ["cc", "-fsyntax-only",
+           "-I" + str(tmpdir.join("include")),
+           "-I" + os.path.join(prefix, "include"),
+           "-I" + py_include, c_file]
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+    except OSError:
+        pytest.skip("no C compiler")
+    out = proc.communicate()[0].decode("utf-8", "replace")
+    assert proc.returncode == 0, out
