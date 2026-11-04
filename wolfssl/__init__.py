@@ -720,7 +720,14 @@ class SSLSocket(object):
         if nbytes == 0:
             return 0
 
-        data = _ffi.from_buffer(buffer)
+        # wolfSSL_read() writes into this memory, so refuse read-only
+        # buffers (e.g. bytes) rather than corrupting immutable objects.
+        # Raise TypeError to match the stdlib socket/ssl recv_into().
+        try:
+            data = _ffi.from_buffer(buffer, require_writable=True)
+        except BufferError:
+            raise TypeError("recv_into() buffer must be a writable "
+                            "bytes-like object")
         length = _lib.wolfSSL_read(self.native_object, data, nbytes)
         _ffi.release(data)
         if length < 0:
