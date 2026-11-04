@@ -90,6 +90,15 @@ class WolfSSL(object):
         _lib.wolfSSL_Debugging_OFF()
 
 
+def _decode_cert_string(raw):
+    """
+    Decode a string value taken from a certificate. X.509 names are
+    commonly UTF8String, so decode as UTF-8, replacing undecodable bytes
+    instead of raising so a peer certificate cannot make inspection fail.
+    """
+    return raw.decode("utf-8", "replace")
+
+
 class WolfSSLX509(object):
     """
     A WolfSSLX509 represents a X.509 certificate extracted from an SSL/TLS
@@ -128,7 +137,7 @@ class WolfSSLX509(object):
         if cnPtr == _ffi.NULL:
             return ''
 
-        cn = _ffi.string(cnPtr).decode("ascii")
+        cn = _decode_cert_string(_ffi.string(cnPtr))
 
         return cn
 
@@ -137,7 +146,7 @@ class WolfSSLX509(object):
         if (sanPtr == _ffi.NULL):
             return None
 
-        san = _ffi.string(sanPtr).decode("ascii")
+        san = _decode_cert_string(_ffi.string(sanPtr))
 
         return san
 
