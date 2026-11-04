@@ -213,6 +213,13 @@ class SSLContext(object):
             raise ValueError("verify_mode must be one of CERT_NONE, "
                              "CERT_OPTIONAL or CERT_REQUIRED")
 
+        # check_hostname requires CERT_REQUIRED (see its setter); do not
+        # allow verification to be relaxed underneath it, which would leave
+        # check_hostname reporting True while the peer is not verified.
+        if self._check_hostname and value != CERT_REQUIRED:
+            raise ValueError("verify_mode must remain CERT_REQUIRED while "
+                             "check_hostname is enabled")
+
         if value != self._verify_mode:
             self._verify_mode = value
             _lib.wolfSSL_CTX_set_verify(self.native_object,

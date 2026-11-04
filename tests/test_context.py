@@ -85,6 +85,41 @@ def test_check_hostname_requires_cert_required(ssl_provider, ssl_context):
     assert ssl_context.check_hostname is True
 
 
+def test_verify_mode_downgrade_blocked_by_check_hostname(ssl_provider,
+                                                         ssl_context):
+    # F-2136: verify_mode could be lowered to CERT_NONE after enabling
+    # check_hostname, silently disabling peer (and so hostname) checks.
+    ssl_context.verify_mode = ssl_provider.CERT_REQUIRED
+    ssl_context.check_hostname = True
+
+    with pytest.raises(ValueError):
+        ssl_context.verify_mode = ssl_provider.CERT_NONE
+    assert ssl_context.verify_mode == ssl_provider.CERT_REQUIRED
+    assert ssl_context.check_hostname is True
+
+    # Re-asserting CERT_REQUIRED is fine.
+    ssl_context.verify_mode = ssl_provider.CERT_REQUIRED
+
+    # Disabling check_hostname first allows the downgrade.
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl_provider.CERT_NONE
+    assert ssl_context.verify_mode == ssl_provider.CERT_NONE
+
+
+def test_verify_mode_optional_blocked_by_check_hostname():
+    # wolfssl's check_hostname requires CERT_REQUIRED, so relaxing to
+    # CERT_OPTIONAL while it is enabled must be refused as well.
+    import wolfssl
+
+    ctx = wolfssl.SSLContext(wolfssl.PROTOCOL_TLS)
+    ctx.verify_mode = wolfssl.CERT_REQUIRED
+    ctx.check_hostname = True
+
+    with pytest.raises(ValueError):
+        ctx.verify_mode = wolfssl.CERT_OPTIONAL
+    assert ctx.verify_mode == wolfssl.CERT_REQUIRED
+
+
 def test_wrap_socket_server_side_mismatch(ssl_context, tcp_socket):
     with pytest.raises(ValueError):
         ssl_context.wrap_socket(tcp_socket, server_side=True)

@@ -158,8 +158,10 @@ def configure_verification(context, args):
     the CA still applies. Connect by DNS name to also verify the hostname.
     """
     if args.d:
-        context.verify_mode = wolfssl.CERT_NONE
+        # check_hostname must be cleared before verify_mode can drop below
+        # CERT_REQUIRED.
         context.check_hostname = False
+        context.verify_mode = wolfssl.CERT_NONE
         return None
 
     context.verify_mode = wolfssl.CERT_REQUIRED
