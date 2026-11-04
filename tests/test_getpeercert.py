@@ -26,6 +26,7 @@
 import socket
 from contextlib import contextmanager
 from threading import Thread
+from types import SimpleNamespace
 
 import pytest
 
@@ -189,3 +190,54 @@ def test_invalid_utf8_certificate_strings_do_not_raise(monkeypatch):
 
     assert x509.get_subject_cn() == u"Caf\ufffd"
     assert x509.get_next_altname() == u"Caf\ufffd"
+
+
+def test_getpeercert_labels_altnames_by_type():
+    """
+    F-2931: get_altnames() labelled every subjectAltName 'DNS', so IP
+    address, email and URI entries were reported as DNS names. Each entry
+    must carry the stdlib ssl module's label for its GeneralName type.
+    """
+    with _client_server_session(*_UTF8_SAN_CERT) as (client, _result):
+        altnames = client.getpeercert()["subjectAltName"]
+        x509 = client.get_peer_x509()
+        next_altnames = []
+        while True:
+            name = x509.get_next_altname()
+            if name is None:
+                break
+            next_altnames.append(name)
+
+    assert sorted(altnames) == sorted([
+        ("DNS", u"localhost"),
+        ("IP Address", u"127.0.0.1"),
+        ("IP Address", u"2001:DB8:0:0:0:0:0:1"),
+        ("email", u"test@example.com"),
+        ("URI", _UTF8_URI),
+    ])
+    # Entries come back in the order get_next_altname() walks them. It
+    # formats IP addresses differently, so compare only the other values.
+    assert len(altnames) == len(next_altnames)
+    for (label, value), next_value in zip(altnames, next_altnames):
+        if label != "IP Address":
+            assert value == next_value
+
+
+def test_format_ip_address_matches_stdlib():
+    assert wolfssl._format_ip_address(b"\x7f\x00\x00\x01") == u"127.0.0.1"
+    assert wolfssl._format_ip_address(
+        b"\x20\x01\x0d\xb8" + b"\x00" * 11 + b"\x01") == \
+        u"2001:DB8:0:0:0:0:0:1"
+    assert wolfssl._format_ip_address(b"\x01\x02") == u"<invalid>"
+
+
+@pytest.mark.parametrize("gen_type, label", [
+    ("GEN_OTHERNAME", "othername"),
+    ("GEN_X400", "x400Address"),
+    ("GEN_DIRNAME", "DirName"),
+    ("GEN_EDIPARTY", "ediPartyName"),
+    ("GEN_RID", "Registered ID"),
+])
+def test_undecoded_altname_types_keep_their_label(gen_type, label):
+    gn = SimpleNamespace(type=getattr(wolfssl._lib, gen_type))
+    assert wolfssl._general_name_to_tuple(gn) == (label, u"<unsupported>")

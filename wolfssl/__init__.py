@@ -99,6 +99,64 @@ def _decode_cert_string(raw):
     return raw.decode("utf-8", "replace")
 
 
+def _asn1_string_bytes(asn1):
+    if asn1 == _ffi.NULL:
+        return b""
+    data = _lib.wolfSSL_ASN1_STRING_data(asn1)
+    length = _lib.wolfSSL_ASN1_STRING_length(asn1)
+    if data == _ffi.NULL or length <= 0:
+        return b""
+    return _ffi.buffer(data, length)[:]
+
+
+def _format_ip_address(raw):
+    """
+    Format a raw iPAddress SAN value the same way the stdlib ssl module's
+    getpeercert() does.
+    """
+    octets = bytearray(raw)
+    if len(octets) == 4:
+        return u"%d.%d.%d.%d" % tuple(octets)
+    if len(octets) == 16:
+        return u":".join(u"%X" % ((octets[i] << 8) | octets[i + 1])
+                         for i in range(0, 16, 2))
+    return u"<invalid>"
+
+
+def _general_name_to_tuple(gn):
+    """
+    Convert a WOLFSSL_GENERAL_NAME into a (type, value) tuple using the type
+    labels of the stdlib ssl module's getpeercert(). Returns None for
+    unrecognized types.
+    """
+    gen_type = gn.type
+    if gen_type == _lib.GEN_DNS:
+        return ('DNS', _decode_cert_string(_asn1_string_bytes(gn.d.dNSName)))
+    if gen_type == _lib.GEN_IPADD:
+        return ('IP Address',
+                _format_ip_address(_asn1_string_bytes(gn.d.iPAddress)))
+    if gen_type == _lib.GEN_EMAIL:
+        return ('email',
+                _decode_cert_string(_asn1_string_bytes(gn.d.rfc822Name)))
+    if gen_type == _lib.GEN_URI:
+        return ('URI', _decode_cert_string(
+            _asn1_string_bytes(gn.d.uniformResourceIdentifier)))
+
+    # Types whose values are not decoded here; report them under the stdlib
+    # label so they are never mistaken for one of the types above.
+    unsupported = {
+        _lib.GEN_OTHERNAME: 'othername',
+        _lib.GEN_X400: 'x400Address',
+        _lib.GEN_DIRNAME: 'DirName',
+        _lib.GEN_EDIPARTY: 'ediPartyName',
+        _lib.GEN_RID: 'Registered ID',
+    }
+    if gen_type in unsupported:
+        return (unsupported[gen_type], u"<unsupported>")
+
+    return None
+
+
 class WolfSSLX509(object):
     """
     A WolfSSLX509 represents a X.509 certificate extracted from an SSL/TLS
@@ -151,15 +209,42 @@ class WolfSSLX509(object):
         return san
 
     def get_altnames(self):
+        """
+        Return the subjectAltName entries as a list of (type, value) tuples,
+        labelling each entry by its actual GeneralName type ('DNS',
+        'IP Address', 'email', 'URI', ...) as the stdlib ssl module does.
+        """
+        names = _lib.wolfSSL_X509_get_ext_d2i(
+            self.native_object, _lib.NID_subject_alt_name,
+            _ffi.NULL, _ffi.NULL)
+        if names == _ffi.NULL:
+            return []
+        names = _ffi.cast("WOLFSSL_STACK *", names)
 
         altNames = []
+        try:
+            # The stack is a linked list and wolfSSL_sk_GENERAL_NAME_value()
+            # walks it from the head for every index, so indexing each entry
+            # would be quadratic in the number of names. Step from node to
+            # node instead (each node is itself a stack whose index 0 is its
+            # own entry), bounded by the stack's count.
+            count = _lib.wolfSSL_sk_GENERAL_NAME_num(names)
+            node = names
+            for _ in range(count):
+                if node == _ffi.NULL:
+                    break
+                gn = _lib.wolfSSL_sk_GENERAL_NAME_value(node, 0)
+                if gn != _ffi.NULL:
+                    altName = _general_name_to_tuple(gn)
+                    if altName is not None:
+                        altNames.append(altName)
+                node = _lib.wolfSSL_sk_get_node(node, 1)
+        finally:
+            _lib.wolfSSL_GENERAL_NAMES_free(names)
 
-        while True:
-            name = self.get_next_altname()
-            if name is None:
-                break
-            altNames.append(('DNS', name))
-
+        # wolfSSL builds this stack by inserting each entry at the front, so
+        # reverse it to return entries in the order get_next_altname() does.
+        altNames.reverse()
         return altNames
 
     def get_der(self):
