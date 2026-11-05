@@ -48,9 +48,15 @@ def construct_cdef(optional_funcs, OLDTLS_ENABLED):
         static const long EVP_PKEY_DH;
         static const long EVP_PKEY_EC;
 
+        static const long GEN_OTHERNAME;
         static const long GEN_EMAIL;
         static const long GEN_DNS;
+        static const long GEN_X400;
+        static const long GEN_DIRNAME;
+        static const long GEN_EDIPARTY;
         static const long GEN_URI;
+        static const long GEN_IPADD;
+        static const long GEN_RID;
 
         static const long X509_V_FLAG_CRL_CHECK;
         static const long X509_V_FLAG_CRL_CHECK_ALL;
@@ -130,6 +136,7 @@ def construct_cdef(optional_funcs, OLDTLS_ENABLED):
         static const long V_ASN1_GENERALIZEDTIME;
 
         static const int NID_undef;
+        static const int NID_subject_alt_name;
 
         /**
          * Types

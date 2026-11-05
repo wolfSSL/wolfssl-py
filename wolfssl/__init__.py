@@ -90,6 +90,73 @@ class WolfSSL(object):
         _lib.wolfSSL_Debugging_OFF()
 
 
+def _decode_cert_string(raw):
+    """
+    Decode a string value taken from a certificate. X.509 names are
+    commonly UTF8String, so decode as UTF-8, replacing undecodable bytes
+    instead of raising so a peer certificate cannot make inspection fail.
+    """
+    return raw.decode("utf-8", "replace")
+
+
+def _asn1_string_bytes(asn1):
+    if asn1 == _ffi.NULL:
+        return b""
+    data = _lib.wolfSSL_ASN1_STRING_data(asn1)
+    length = _lib.wolfSSL_ASN1_STRING_length(asn1)
+    if data == _ffi.NULL or length <= 0:
+        return b""
+    return _ffi.buffer(data, length)[:]
+
+
+def _format_ip_address(raw):
+    """
+    Format a raw iPAddress SAN value the same way the stdlib ssl module's
+    getpeercert() does.
+    """
+    octets = bytearray(raw)
+    if len(octets) == 4:
+        return u"%d.%d.%d.%d" % tuple(octets)
+    if len(octets) == 16:
+        return u":".join(u"%X" % ((octets[i] << 8) | octets[i + 1])
+                         for i in range(0, 16, 2))
+    return u"<invalid>"
+
+
+def _general_name_to_tuple(gn):
+    """
+    Convert a WOLFSSL_GENERAL_NAME into a (type, value) tuple using the type
+    labels of the stdlib ssl module's getpeercert(). Returns None for
+    unrecognized types.
+    """
+    gen_type = gn.type
+    if gen_type == _lib.GEN_DNS:
+        return ('DNS', _decode_cert_string(_asn1_string_bytes(gn.d.dNSName)))
+    if gen_type == _lib.GEN_IPADD:
+        return ('IP Address',
+                _format_ip_address(_asn1_string_bytes(gn.d.iPAddress)))
+    if gen_type == _lib.GEN_EMAIL:
+        return ('email',
+                _decode_cert_string(_asn1_string_bytes(gn.d.rfc822Name)))
+    if gen_type == _lib.GEN_URI:
+        return ('URI', _decode_cert_string(
+            _asn1_string_bytes(gn.d.uniformResourceIdentifier)))
+
+    # Types whose values are not decoded here; report them under the stdlib
+    # label so they are never mistaken for one of the types above.
+    unsupported = {
+        _lib.GEN_OTHERNAME: 'othername',
+        _lib.GEN_X400: 'x400Address',
+        _lib.GEN_DIRNAME: 'DirName',
+        _lib.GEN_EDIPARTY: 'ediPartyName',
+        _lib.GEN_RID: 'Registered ID',
+    }
+    if gen_type in unsupported:
+        return (unsupported[gen_type], u"<unsupported>")
+
+    return None
+
+
 class WolfSSLX509(object):
     """
     A WolfSSLX509 represents a X.509 certificate extracted from an SSL/TLS
@@ -128,7 +195,7 @@ class WolfSSLX509(object):
         if cnPtr == _ffi.NULL:
             return ''
 
-        cn = _ffi.string(cnPtr).decode("ascii")
+        cn = _decode_cert_string(_ffi.string(cnPtr))
 
         return cn
 
@@ -137,20 +204,47 @@ class WolfSSLX509(object):
         if (sanPtr == _ffi.NULL):
             return None
 
-        san = _ffi.string(sanPtr).decode("ascii")
+        san = _decode_cert_string(_ffi.string(sanPtr))
 
         return san
 
     def get_altnames(self):
+        """
+        Return the subjectAltName entries as a list of (type, value) tuples,
+        labelling each entry by its actual GeneralName type ('DNS',
+        'IP Address', 'email', 'URI', ...) as the stdlib ssl module does.
+        """
+        names = _lib.wolfSSL_X509_get_ext_d2i(
+            self.native_object, _lib.NID_subject_alt_name,
+            _ffi.NULL, _ffi.NULL)
+        if names == _ffi.NULL:
+            return []
+        names = _ffi.cast("WOLFSSL_STACK *", names)
 
         altNames = []
+        try:
+            # The stack is a linked list and wolfSSL_sk_GENERAL_NAME_value()
+            # walks it from the head for every index, so indexing each entry
+            # would be quadratic in the number of names. Step from node to
+            # node instead (each node is itself a stack whose index 0 is its
+            # own entry), bounded by the stack's count.
+            count = _lib.wolfSSL_sk_GENERAL_NAME_num(names)
+            node = names
+            for _ in range(count):
+                if node == _ffi.NULL:
+                    break
+                gn = _lib.wolfSSL_sk_GENERAL_NAME_value(node, 0)
+                if gn != _ffi.NULL:
+                    altName = _general_name_to_tuple(gn)
+                    if altName is not None:
+                        altNames.append(altName)
+                node = _lib.wolfSSL_sk_get_node(node, 1)
+        finally:
+            _lib.wolfSSL_GENERAL_NAMES_free(names)
 
-        while True:
-            name = self.get_next_altname()
-            if name is None:
-                break
-            altNames.append(('DNS', name))
-
+        # wolfSSL builds this stack by inserting each entry at the front, so
+        # reverse it to return entries in the order get_next_altname() does.
+        altNames.reverse()
         return altNames
 
     def get_der(self):
@@ -212,6 +306,13 @@ class SSLContext(object):
         if value not in _VERIFY_MODE_LIST:
             raise ValueError("verify_mode must be one of CERT_NONE, "
                              "CERT_OPTIONAL or CERT_REQUIRED")
+
+        # check_hostname requires CERT_REQUIRED (see its setter); do not
+        # allow verification to be relaxed underneath it, which would leave
+        # check_hostname reporting True while the peer is not verified.
+        if self._check_hostname and value != CERT_REQUIRED:
+            raise ValueError("verify_mode must remain CERT_REQUIRED while "
+                             "check_hostname is enabled")
 
         if value != self._verify_mode:
             self._verify_mode = value
@@ -720,7 +821,14 @@ class SSLSocket(object):
         if nbytes == 0:
             return 0
 
-        data = _ffi.from_buffer(buffer)
+        # wolfSSL_read() writes into this memory, so refuse read-only
+        # buffers (e.g. bytes) rather than corrupting immutable objects.
+        # Raise TypeError to match the stdlib socket/ssl recv_into().
+        try:
+            data = _ffi.from_buffer(buffer, require_writable=True)
+        except BufferError:
+            raise TypeError("recv_into() buffer must be a writable "
+                            "bytes-like object")
         length = _lib.wolfSSL_read(self.native_object, data, nbytes)
         _ffi.release(data)
         if length < 0:

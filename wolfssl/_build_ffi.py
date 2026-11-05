@@ -379,10 +379,23 @@ cdef = """
     typedef ... WOLFSSL_ASN1_GENERALIZEDTIME;
     typedef ... WOLFSSL_ASN1_STRING;
     typedef ... WOLFSSL_ASN1_OBJECT;
+    typedef ... WOLFSSL_STACK;
 
     /*
      * Non-opaque structs, where we need access to fields.
      */
+    /* Only the union members used are declared. Every member of the native
+     * union is a pointer, so the declared union has the same size. */
+    typedef struct WOLFSSL_GENERAL_NAME {
+        int type;
+        union {
+            WOLFSSL_ASN1_STRING* rfc822Name;
+            WOLFSSL_ASN1_STRING* dNSName;
+            WOLFSSL_ASN1_STRING* uniformResourceIdentifier;
+            WOLFSSL_ASN1_STRING* iPAddress;
+        } d;
+        ...;
+    } WOLFSSL_GENERAL_NAME;
     typedef struct WOLFSSL_ALERT {
         int code;
         int level;
@@ -546,6 +559,13 @@ cdef += """
     WOLFSSL_ASN1_STRING*     wolfSSL_X509_EXTENSION_get_data(
                                  WOLFSSL_X509_EXTENSION*);
     WOLFSSL_X509*            wolfSSL_X509_dup(WOLFSSL_X509*);
+    void*                    wolfSSL_X509_get_ext_d2i(const WOLFSSL_X509*,
+                                 int, int*, int*);
+    int                      wolfSSL_sk_GENERAL_NAME_num(WOLFSSL_STACK*);
+    WOLFSSL_GENERAL_NAME*    wolfSSL_sk_GENERAL_NAME_value(WOLFSSL_STACK*,
+                                 int);
+    WOLFSSL_STACK*           wolfSSL_sk_get_node(WOLFSSL_STACK*, int);
+    void                     wolfSSL_GENERAL_NAMES_free(WOLFSSL_STACK*);
 
     /*
      * ASN.1
